@@ -1,5 +1,6 @@
-from aiharness.arguments import *
-import logging
+from aiharness.arguments import Arguments
+from aiharness import harnessutils as utils
+from dataclasses import dataclass
 
 
 @dataclass()
@@ -12,10 +13,8 @@ class TestObj:
     product: str = ''
 
 
-log = logging.getLogger()
-log.setLevel('INFO')
+log = utils.getLogger('aiharness')
 
-if __name__ == '__main__':
-    obj: TestObj = Arguments(TestObj()) \
-        .set_from_yaml('arguments.yaml').parse()
-    log.info(obj)
+obj: TestObj = Arguments(TestObj()) \
+    .set_from_yaml('arguments.yaml').parse()
+log.info(obj)
