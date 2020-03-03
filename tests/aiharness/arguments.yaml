@@ -1,18 +1,19 @@
-- name: name
-  default: test
-  help: "input the name"
-- name: age
-  default: 20
-  help: "input the age of the people"
-- name: address
-  default: beijing
-  help: "input the address"
-- name: online
-  default: True
-  help: "input the status"
-- name: company
-  default: mds
-  help: "input the company"
-- name: product
-  default: vex
-  help: "input the product name"
+model:
+  - name: name
+    default: test
+    help: "input the name"
+  - name: age
+    default: 20
+    help: "input the age of the people"
+  - name: address
+    default: beijing
+    help: "input the address"
+  - name: online
+    default: True
+    help: "input the status"
+  - name: company
+    default: mds
+    help: "input the company"
+  - name: product
+    default: vex
+    help: "input the product name"
