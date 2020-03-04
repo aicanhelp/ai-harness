@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<configuration>
+    <group name="model">
+        <arg name="test1" default="test" help=""/>
+        <arg name="test2" default="test" help=""/>
+    </group>
+    <group name="test">
+        <arg name="test3" default="test" help=""/>
+        <arg name="test4" default="test" help=""/>
+    </group>
+</configuration>

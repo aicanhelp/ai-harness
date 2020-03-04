@@ -1,0 +1,31 @@
+model:
+  - name: pretrained-bert
+    default: True
+    help: "use a pretrained bert-large-uncased model instead of initializing from scratch.
+    See --tokenizer-model-type to specify which pretrained BERT model to use"
+  - name: attention-dropout
+    default: 0.1
+    help: "dropout probability for attention weights"
+  - name: num-attention-heads
+    default: 16
+    help: "num of transformer attention heads"
+  - name: hidden-size
+    default: 1024
+    help: "tansformer hidden size"
+  - name: intermediate-size
+    default: 4096
+    help: "transformer embedding dimension for FFN set to 4*`--hidden-size` if it is None"
+  - name: num-layers
+    default: 24
+    help: "num decoder layers"
+  - name: layernorm-epsilon
+    default: 1e-5
+    help: "layer norm epsilon"
+  - name: hidden-dropout
+    default: 0.1
+    help: "dropout probability for hidden state transformer"
+  - name: max-position-embeddings
+    default: 512
+    help: "maximum number of position embeddings to use"
+
+

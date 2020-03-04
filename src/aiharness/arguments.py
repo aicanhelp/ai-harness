@@ -1,6 +1,9 @@
+from typing import List
+
 from dataclasses import dataclass
 from aiharness import harnessutils as utils
 from aiharness.inspector import Inspector
+from aiharness.objectproxy import ObjectWrapper
 
 import argparse
 
@@ -12,13 +15,27 @@ class Argument:
     help: str = ''
 
 
+@dataclass()
+class ConfigGroup:
+    name: str = None
+    arguments: List[Argument] = None
+
+
+@dataclass()
+class Configurations:
+    groups: List[ConfigGroup] = None
+
+
 class Arguments:
-    def __init__(self, argType):
+    def __init__(self, argType=None):
         self.parser = argparse.ArgumentParser()
-        self.destObj = argType()
+        if argType is not None:
+            self.destObj = argType()
+        else:
+            self.destObj = None
 
     def __get_type_action(self, argument: Argument, argName):
-        t = 'store'
+        t = str
         if self.destObj is not None:
             t = Inspector.field_type(self.destObj, argName, True)
         if t == bool:
@@ -30,9 +47,11 @@ class Arguments:
 
     def set_with_object(self, argument: Argument, group=None):
         argName = argument.name
+        argName = argName.replace('-', '_')
         if group is not None:
             argName = group + '.' + argName
         t, action = self.__get_type_action(argument, argName)
+        argName = argName.replace('_', '-')
 
         self.parser.add_argument('--' + argName,
                                  default=t(argument.default),
@@ -59,6 +78,10 @@ class Arguments:
                 t = Inspector.get_attr_with_type(self.destObj, v)
 
             self.set_with_objects(v, k)
+
+    def set_with_configurations(self, configurations: Configurations):
+        for group in configurations.groups:
+            self.set_with_objects(group.arguments, group.name)
 
     def parse(self, args=None):
         args, _ = self.parser.parse_known_args(args)
