@@ -1,12 +1,10 @@
-from dataclasses import dataclass
-
 from aiharness import harnessutils as utils
 from aiharness.inspector import Inspector
-from aiharness.objectproxy import ObjectWrapper
+from wrapt import ObjectProxy
 import argparse
 
 
-class ArgType(ObjectWrapper):
+class ArgType(ObjectProxy):
     help = None
     type = None
 
@@ -97,9 +95,9 @@ class Arguments:
         t = type(ArgType)
         if t == bool:
             if argument.default:
-                return t, 'store_true'
-            else:
                 return t, 'store_false'
+            else:
+                return t, 'store_true'
         return t, action
 
     def __get_group(self, groupName, help=''):

@@ -29,7 +29,7 @@ Current features:
 ``` 
 you can define multiple xml configuration files, and if the name is same, the value of the later will cover the previous. 
 #### (3) Define the configuration class like: 
-```python
+```
 @dataclass
 class Address:
     phone: ArgType = ArgType(139, "phone help")
@@ -50,14 +50,14 @@ class Config:
     education: Education = Education()
 ```
 #### (3) Load the xml configuration into python object as folling:
-```python
+```
 from aiharness.configuration import XmlConfiguration
 
 config:Config=XmlConfiguration(Config).load(['configuration1.xml','configuration2.xml'])
 ```
 ### Arguments Example
 Generally, we use argparse as following:
-```python
+```
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("--name",default='TEST',help='name help')
@@ -72,7 +72,7 @@ And here the Config Class and 'configuration.xml' are same with those of the Con
 Firstly, in fact, the Config Class instead of the codes of 'add_argument' of the argparse.ArgumentParser.
 Secondly, you can put the configuration into a xml file so that you can change it conveniently.
 
-```python
+```
 from aiharness.configuration import ArgType, Arguments, XmlConfiguration
 
 config: Config = XmlConfiguration(Config).load(['configuration.xml'])

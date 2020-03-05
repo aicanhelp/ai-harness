@@ -8,10 +8,16 @@ handlers:
     level: INFO
     formatter: simple
     stream: ext://sys.stdout
+  file:
+    class: logging.handlers.RotatingFileHandler
+    formatter: simple
+    filename: aiharness.log
+    maxBytes: 256000000
+    backupCount: 5
 loggers:
   aiharness:
     level: INFO
-    handlers: [console]
+    handlers: [console,file]
     propagate: no
 root:
   level: WARN

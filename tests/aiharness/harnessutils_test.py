@@ -4,7 +4,7 @@ from aiharness import harnessutils as utils
 import yaml
 import argparse
 
-log = utils.getRootLogger()
+log = utils.getLogger('aiharness')
 
 
 def test_yaml():

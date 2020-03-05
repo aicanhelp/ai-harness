@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from wrapt import ObjectProxy
 
 from aiharness.configuration import ArgType, Arguments, XmlConfiguration
 from aiharness import harnessutils as utils
