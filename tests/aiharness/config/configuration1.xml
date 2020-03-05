@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<configuration>
+    <arg name="name" default="TestName" help="Name Test Help"/>
+    <arg name="age" default="80" help="Age Test Help"/>
+</configuration>

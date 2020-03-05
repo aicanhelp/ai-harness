@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<configuration>
+    <arg name="name" default="TestName" help="Name Test Help"/>
+    <arg name="age" default="80" help="Age Test Help"/>
+    <group name="address">
+        <arg name="home" default="shanghai" help="Home test Help"/>
+        <arg name="phone" default="136" help="Phone test Help"/>
+    </group>
+    <group name="education" help="">
+        <arg name="school" default="beijing" help="school test Help"/>
+        <arg name="grade" default="master" help="grade test Help"/>
+    </group>
+</configuration>

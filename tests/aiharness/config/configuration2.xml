@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<configuration>
+    <group name="address" help="groupHelp">
+        <arg name="home" default="shanghai" help="Home test Help"/>
+        <arg name="phone" default="136" help="Phone test Help"/>
+    </group>
+</configuration>

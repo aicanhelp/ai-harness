@@ -12,13 +12,66 @@ import torchvision.datasets as datasets
 import torchvision.models as models
 from torch.multiprocessing import set_start_method
 
-try:
-    set_start_method('spawn')
-except RuntimeError:
-    pass
+
+def prepare_for_multiple_workers():
+    '''
+    It is also important to set the multiprocessing start method to *spawn*,
+    as the default is *fork* which may cause deadlocks when using multiple
+    worker threads for dataloading.
+
+    :return:
+    '''
+    try:
+        set_start_method('spawn')
+    except RuntimeError:
+        pass
+
+
+class AverageMeter(object):
+    """
+    The ``AverageMeter`` class tracks training statistics like accuracy and iteration count.
+
+    Computes and stores the average and current value.
+    """
+
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.val = 0
+        self.avg = 0
+        self.sum = 0
+        self.count = 0
+
+    def update(self, val, n=1):
+        self.val = val
+        self.sum += val * n
+        self.count += n
+        self.avg = self.sum / self.count
+
+
+def accuracy(output, target, topk=(1,)):
+    """
+    The ``accuracy`` function computes and returns the top-k accuracy of the model so we can track learning
+    progress.
+
+    Computes the precision@k for the specified values of k"""
+    with torch.no_grad():
+        maxk = max(topk)
+        batch_size = target.size(0)
+
+        _, pred = output.topk(maxk, 1, True, True)
+        pred = pred.t()
+        correct = pred.eq(target.view(1, -1).expand_as(pred))
+
+        res = []
+        for k in topk:
+            correct_k = correct[:k].view(-1).float().sum(0, keepdim=True)
+            res.append(correct_k.mul_(100.0 / batch_size))
+        return res
+
 
 def train(train_loader, model, criterion, optimizer, epoch):
-
     batch_time = AverageMeter()
     data_time = AverageMeter()
     losses = AverageMeter()
@@ -33,7 +86,6 @@ def train(train_loader, model, criterion, optimizer, epoch):
 
         # measure data loading time
         data_time.update(time.time() - end)
-
         input = input.cuda(non_blocking=True)
         target = target.cuda(non_blocking=True)
 
@@ -43,6 +95,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
 
         # measure accuracy and record loss
         prec1, prec5 = accuracy(output, target, topk=(1, 5))
+
         losses.update(loss.item(), input.size(0))
         top1.update(prec1[0], input.size(0))
         top5.update(prec5[0], input.size(0))
@@ -52,7 +105,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
         loss.backward()
 
         # Average gradients across all workers
-        #average_gradients(model)
+        # average_gradients(model)
 
         # Call step of optimizer to update model params
         optimizer.step()
@@ -68,11 +121,11 @@ def train(train_loader, model, criterion, optimizer, epoch):
                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                   'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
                   'Prec@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
-                   epoch, i, len(train_loader), batch_time=batch_time,
-                   data_time=data_time, loss=losses, top1=top1, top5=top5))
+                epoch, i, len(train_loader), batch_time=batch_time,
+                data_time=data_time, loss=losses, top1=top1, top5=top5))
+
 
 def validate(val_loader, model, criterion):
-
     batch_time = AverageMeter()
     losses = AverageMeter()
     top1 = AverageMeter()
@@ -108,30 +161,14 @@ def validate(val_loader, model, criterion):
                       'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                       'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
                       'Prec@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
-                       i, len(val_loader), batch_time=batch_time, loss=losses,
-                       top1=top1, top5=top5))
+                    i, len(val_loader), batch_time=batch_time, loss=losses,
+                    top1=top1, top5=top5))
 
         print(' * Prec@1 {top1.avg:.3f} Prec@5 {top5.avg:.3f}'
               .format(top1=top1, top5=top5))
 
     return top1.avg
 
-class AverageMeter(object):
-    """Computes and stores the average and current value"""
-    def __init__(self):
-        self.reset()
-
-    def reset(self):
-        self.val = 0
-        self.avg = 0
-        self.sum = 0
-        self.count = 0
-
-    def update(self, val, n=1):
-        self.val = val
-        self.sum += val * n
-        self.count += n
-        self.avg = self.sum / self.count
 
 def adjust_learning_rate(initial_lr, optimizer, epoch):
     """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
@@ -139,21 +176,6 @@ def adjust_learning_rate(initial_lr, optimizer, epoch):
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
 
-def accuracy(output, target, topk=(1,)):
-    """Computes the precision@k for the specified values of k"""
-    with torch.no_grad():
-        maxk = max(topk)
-        batch_size = target.size(0)
-
-        _, pred = output.topk(maxk, 1, True, True)
-        pred = pred.t()
-        correct = pred.eq(target.view(1, -1).expand_as(pred))
-
-        res = []
-        for k in topk:
-            correct_k = correct[:k].view(-1).float().sum(0, keepdim=True)
-            res.append(correct_k.mul_(100.0 / batch_size))
-        return res
 
 """
 #########################################################################3
@@ -191,15 +213,15 @@ world_size = 4
 
 # Distributed backend type
 dist_backend = 'nccl'
-#dist_backend = 'gloo'
+# dist_backend = 'gloo'
 
 # Url used to setup distributed training
 # v1
-#dist_url = "tcp://18.205.21.252:23456"
+# dist_url = "tcp://18.205.21.252:23456"
 dist_url = "tcp://172.31.22.234:23456"
-#dist_url = "tcp://172.17.0.1:23456"
+# dist_url = "tcp://172.17.0.1:23456"
 # v2
-#dist_url = "file:///home/ubuntu/distributed_tutorial/trainfile"
+# dist_url = "file:///home/ubuntu/distributed_tutorial/trainfile"
 
 
 """
@@ -229,12 +251,11 @@ print("Initialize Process Group...")
 # v1 - init with url
 dist.init_process_group(backend=dist_backend, init_method=dist_url, rank=int(sys.argv[1]), world_size=world_size)
 # v2 - init with file
-#dist.init_process_group(backend="nccl", init_method="file:///home/ubuntu/pt-distributed-tutorial/trainfile", rank=int(sys.argv[1]), world_size=world_size)
+# dist.init_process_group(backend="nccl", init_method="file:///home/ubuntu/pt-distributed-tutorial/trainfile", rank=int(sys.argv[1]), world_size=world_size)
 
 local_rank = int(sys.argv[2])
 dp_device_ids = [local_rank]
 torch.cuda.set_device(local_rank)
-
 
 """
 #########################################################################3
@@ -253,7 +274,7 @@ optimizer to train with.
 print("Initialize Model...")
 model = models.resnet18(pretrained=False).cuda()
 model = torch.nn.parallel.DistributedDataParallel(model, device_ids=dp_device_ids, output_device=local_rank)
-#model = torch.nn.parallel.DistributedDataParallelC10D(model, device_ids=dp_device_ids, output_device=local_rank)
+# model = torch.nn.parallel.DistributedDataParallelC10D(model, device_ids=dp_device_ids, output_device=local_rank)
 
 # define loss function (criterion) and optimizer
 criterion = nn.CrossEntropyLoss().cuda()
@@ -284,11 +305,12 @@ trainset = datasets.STL10(root='./data', split='train', download=True, transform
 valset = datasets.STL10(root='./data', split='test', download=True, transform=transform)
 
 train_sampler = torch.utils.data.distributed.DistributedSampler(trainset)
-#train_sampler = None
+# train_sampler = None
 
-train_loader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=(train_sampler is None), num_workers=workers, pin_memory=False, sampler=train_sampler)
-val_loader = torch.utils.data.DataLoader(valset, batch_size=batch_size, shuffle=False, num_workers=workers, pin_memory=False)
-
+train_loader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, shuffle=(train_sampler is None),
+                                           num_workers=workers, pin_memory=False, sampler=train_sampler)
+val_loader = torch.utils.data.DataLoader(valset, batch_size=batch_size, shuffle=False, num_workers=workers,
+                                         pin_memory=False)
 
 """
 #########################################################################
@@ -312,15 +334,15 @@ for epoch in range(num_epochs):
     adjust_learning_rate(starting_lr, optimizer, epoch)
 
     # train for one epoch
-    print("\nBegin Training Epoch {}".format(epoch+1))
+    print("\nBegin Training Epoch {}".format(epoch + 1))
     train(train_loader, model, criterion, optimizer, epoch)
 
     # evaluate on validation set
-    print("Begin Validation @ Epoch {}".format(epoch+1))
+    print("Begin Validation @ Epoch {}".format(epoch + 1))
     prec1 = validate(val_loader, model, criterion)
 
     # remember best prec@1 and save checkpoint if desired
-    #is_best = prec1 > best_prec1
+    # is_best = prec1 > best_prec1
     best_prec1 = max(prec1, best_prec1)
 
     print("Epoch Summary: ")

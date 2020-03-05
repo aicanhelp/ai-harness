@@ -13,7 +13,7 @@ def test_yaml():
 
 
 def test_load_config():
-    conf = utils.load_config('arguments.yaml')
+    conf = utils.load_yaml('arguments.yaml')
     assert conf is not None
 
 
@@ -28,4 +28,3 @@ def test_array():
     def create(a: List[int], b: int):
         for i in a:
             log.info(i)
-

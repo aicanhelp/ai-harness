@@ -10,7 +10,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='ai-harness',
-    version='0.1.1',
+    version='0.2.0',
     description='A harness project for ML & DL',
     long_description=long_description,
     long_description_content_type='text/markdown',
