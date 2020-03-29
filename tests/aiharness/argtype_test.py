@@ -20,8 +20,10 @@ class Config:
     address: Address = Address()
 
 
-def test_config():
-    config = Config()
-    arg = ArgType(1, '')
-    arg.set('100', '')
+def test_ArgType():
+    arg: ArgType = ArgType(1, '')
+    arg.set('100', 'test')
     assert arg.type == int
+    arg = ArgType(arg + 100)
+    log.info(arg)
+    log.info(arg.help)

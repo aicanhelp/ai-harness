@@ -11,6 +11,7 @@ log = utils.getLogger('aiharness')
 class Address:
     phone: ArgType = ArgType(139, "phone help")
     home: ArgType = ArgType("beijing", "phone help")
+    test = False
 
 
 @dataclass
