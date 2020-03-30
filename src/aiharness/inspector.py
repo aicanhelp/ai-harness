@@ -17,7 +17,7 @@ class Inspector:
         if not with_type:
             return parent, name, None
 
-        field = type(parent).__dict__.get('__dataclass_fields__').get(name)
+        field = type(parent).__dict__.get('__configclass_fields__').get(name)
         if field is None:
             return parent, name, None
         return parent, name, field.type
