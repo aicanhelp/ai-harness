@@ -10,7 +10,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='ai-harness',
-    version='0.2.2',
+    version='0.2.3',
     description='A harness project for ML & DL',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -41,7 +41,7 @@ setup(
     package_dir={'': 'src'},  # Optional
     packages=find_packages(where='src'),  # Required
     python_requires='>=3.5, <4',
-    install_requires=['pyyaml>=3.12', 'dataclasses>=0.7'],  # Optional
+    install_requires=['pyyaml>=3.12', 'dataclasses>=0.7', 'wrapt>=1.11.0'],  # Optional
 
     extras_require={  # Optional
         'dev': ['check-manifest'],
