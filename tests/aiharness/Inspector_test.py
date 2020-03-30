@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from aiharness.configclasses import configclass
 
 from aiharness import harnessutils as utils
 from aiharness.inspector import Inspector
@@ -6,13 +6,13 @@ from aiharness.inspector import Inspector
 log = utils.getRootLogger()
 
 
-@dataclass()
+@configclass()
 class Address:
     phone: int = None
     home: str = None
 
 
-@dataclass()
+@configclass()
 class User:
     name: str = None
     online: bool = False

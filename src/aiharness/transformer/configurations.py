@@ -1,11 +1,12 @@
-from dataclasses import dataclass
+from aiharness.configclasses import configclass
+
 from aiharness import harnessutils as utils
 from aiharness.inspector import Inspector
 
 import argparse
 
 
-@dataclass()
+@configclass()
 class ModelConfig:
     pretrained_bert: bool = True
     attention_dropout: float = 0.1
