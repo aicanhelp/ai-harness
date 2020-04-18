@@ -15,10 +15,15 @@ class Config:
     age: int = field(default=10, help="age help")
     address: Address = field(Address(), "Address help")
 
+    def update(self):
+        self.name = 1000
+
 
 class Test_Dataclasses:
     def test_field(self):
         config = Config()
+        config.update()
+        config.age = '1000'
         for f in fields(config):
             if f.name == 'name':
                 f.help = "change"

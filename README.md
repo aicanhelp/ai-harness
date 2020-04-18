@@ -6,8 +6,12 @@ Current features:
 - XMLConfiguration: for loading a configuration defined in xml files into a Python Object
 - Arguments: Mapping a Python Object to the arguments of argparse 
 - inspector: Some convenient method for class/object
+- pytorch:  Some convenient tools for pytorch
 - transformer: 
 - others:
+
+## log
+- 2019.4.18, version: 0.2.25: Added distributed training tools for python
 
 ## Examples
 ### XMLConfiguration Example
@@ -73,7 +77,7 @@ Firstly, in fact, the Config Class instead of the codes of 'add_argument' of the
 Secondly, you can put the configuration into a xml file so that you can change it conveniently.
 
 ```
-from aiharness.configuration import ArgType, Arguments, XmlConfiguration
+from aiharness.configuration import  Arguments, XmlConfiguration
 
 config: Config = XmlConfiguration(Config).load(['configuration.xml'])
 arguments = Arguments(config)
