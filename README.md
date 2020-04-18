@@ -5,13 +5,13 @@ This project would like to supply some convenient tools for the machine learning
 Current features:  
 - XMLConfiguration: for loading a configuration defined in xml files into a Python Object
 - Arguments: Mapping a Python Object to the arguments of argparse 
-- inspector: Some convenient method for class/object
-- pytorch:  Some convenient tools for pytorch
+- inspector: Some convenient method for class/object  
+- pytorch:  Some convenient tools for pytorch  
 - transformer: 
 - others:
 
-## log
-- 2019.4.18, version: 0.2.25: Added distributed training tools for python
+## Log
+- 2019.4.18, version: 0.2.25: Added distributed training tools for python  
 
 ## Examples
 ### XMLConfiguration Example

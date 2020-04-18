@@ -9,14 +9,16 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
+    metadata_version='2.1',
     name='ai-harness',
-    version='0.2.5',
+    version='0.3.0',
     description='A harness project for ML & DL',
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/aicanhelp/ai-harness',
     author='modongsong',
     author_email='modongsongml@163.com',
+    license='MIT',
 
     classifiers=[  # Optional
         # How mature is this project? Common values are
