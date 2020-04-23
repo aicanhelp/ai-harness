@@ -72,11 +72,15 @@ class JsonFileFilter():
 
 def list_file(path, pattern='*'):
     p = Path(path)
+    if not p.exists():
+        print('Directory is not exists.')
     return [x.name for x in p.glob(pattern) if x.is_file()]
 
 
 def list_dir(path, pattern='*'):
     p = Path(path)
+    if not p.exists():
+        print('Directory is not exists.')
     return [x.name for x in p.glob(pattern) if x.is_dir()]
 
 
@@ -88,6 +92,10 @@ class JsonDirectoryFilter():
 
     def run(self):
         mkdir_p(self._output)
+        files = list_file(self._input)
+        if len(files) == 0:
+            print('No files in directory ' + self._input)
+            return
         for file in list_file(self._input):
             output_file = self._output + '/' + file
             print('Processing Json file: %s to %s' % (file, output_file))
