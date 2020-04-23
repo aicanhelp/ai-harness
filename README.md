@@ -12,7 +12,7 @@ Current features:
 
 ## Log
 - 2019.4.18, version: 0.3.0: Added distributed training tools for python  
-- 2019.4.23, version: 0.3.1: Added a Json file Reader
+- 2019.4.23, version: 0.3.3: Added a Json file Reader
 
 ## Examples
 ### XMLConfiguration Example
