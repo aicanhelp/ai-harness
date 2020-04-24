@@ -1,8 +1,7 @@
 from box import Box
 from aiharness.tqdmutils import ProgressBar
-from boltons.fileutils import iter_find_files, mkdir_p
+from boltons.fileutils import mkdir_p
 from pathlib import Path
-import os
 
 
 class FileReaderPipe():
@@ -48,11 +47,11 @@ class JsonLineFileReader(FileReaderPipe):
 
 
 class JsonFileFilter():
-    def __init__(self, input_json_file, output_json_file, filter):
+    def __init__(self, input_json_file, output_json_file, filter, bar_step_size=100):
         self._file_reader = JsonLineFileReader(input_json_file)
         self._out_writer = open(output_json_file, 'w')
         self._filter = filter
-        self._bar = ProgressBar()
+        self._bar = ProgressBar(bar_step_size)
 
     def _write(self, result):
         if self._filter is None:
@@ -85,10 +84,11 @@ def list_dir(path, pattern='*'):
 
 
 class JsonDirectoryFilter():
-    def __init__(self, input, output, filter):
+    def __init__(self, input, output, filter, bar_step_size=100):
         self._input = input
         self._output = output
         self._filter = filter
+        self._bar_step_size = bar_step_size
 
     def run(self):
         mkdir_p(self._output)
@@ -99,4 +99,4 @@ class JsonDirectoryFilter():
         for file in list_file(self._input):
             output_file = self._output + '/' + file
             print('Processing Json file: %s to %s' % (file, output_file))
-            JsonFileFilter(self._input + '/' + file, output_file, self._filter).run()
+            JsonFileFilter(self._input + '/' + file, output_file, self._filter, self._bar_step_size).run()
