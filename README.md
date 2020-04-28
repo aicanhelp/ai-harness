@@ -14,6 +14,7 @@ Current features:
 - 2019.4.18, version: 0.3.0: Added distributed training tools for python  
 - 2019.4.23, version: 0.3.5: Added a Json file Reader
 - 2019.4.24, version: 0.3.6: Added a data utils for processing data
+- 2019.4.26, version: 0.3.7 Added a data utils for processing data for zip file
 
 ## Examples
 ### XMLConfiguration Example
@@ -36,22 +37,24 @@ Current features:
 you can define multiple xml configuration files, and if the name is same, the value of the later will cover the previous. 
 #### (3) Define the configuration class like: 
 ```
-@dataclass
+from aiharness.configuration import configclass,field
+
+@configclass
 class Address:
-    phone: ArgType = ArgType(139, "phone help")
-    home: ArgType = ArgType("beijing", "phone help")
+    phone: int = field(139, "phone help")
+    home: str = field("beijing", "phone help")
 
 
-@dataclass
+@configclass
 class Education:
-    school: ArgType = ArgType('ustb', "phone help")
-    grade: ArgType = ArgType("master", "phone help")
+    school: str = field('ustb', "phone help")
+    grade: str = field("master", "phone help")
 
 
-@dataclass
+@configclass
 class Config:
-    name: ArgType = ArgType("test", "name help")
-    age: ArgType = ArgType(10, "age help")
+    name: str = field("test", "name help")
+    age: str = field(10, "age help")
     address: Address = Address()
     education: Education = Education()
 ```

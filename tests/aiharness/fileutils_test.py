@@ -1,5 +1,5 @@
 from aiharness.fileutils import PipeHandler, FileReaderPipeLine, DefaultFileLineFilter, DefaultJsonDirectoryFilter, \
-    list_dir, list_file
+    list_dir, list_file, join_path, JsonZipFilesFilter, extract_zip
 
 
 class TestFirstPipeHanlder(PipeHandler):
@@ -19,6 +19,16 @@ class TestLastPipeHanler(PipeHandler):
     def handle(self, input, previous_input: tuple):
         self.total.append(input)
         return input
+
+
+def test_jion_path():
+    assert join_path(None) is None
+    assert join_path(None, 'a') == 'a'
+    assert join_path('a', None) == 'a'
+    assert join_path('a', 'b') == 'a/b'
+    assert join_path('a', 'b', None) == 'a/b'
+    assert join_path('a', None, 'b') == 'a/b'
+    assert join_path('a', 'b', 'c') == 'a/b/c'
 
 
 class Test_FileReaderPipeline():
@@ -45,7 +55,20 @@ class Test_FileReaderPipeline():
 
 class Test_JsonDirectoryFilter():
     def test(self):
-        DefaultJsonDirectoryFilter('./test_data', './test_data/new').pipe_handlers(self.filter).run()
+        DefaultJsonDirectoryFilter('./test_data/json', '../../build/test_data/json').pipe_handlers(self.filter).run()
+
+    def filter(self, input, previous_input: tuple):
+        return True
+
+
+def test_extract_zip():
+    extract_zip('./test_data/wiki_zh2019.zip', '../../build/test_data')
+
+
+class TestJsonZipFilter():
+    def test(self):
+        JsonZipFilesFilter('./test_data/wiki_zh2019.zip', '../../build/test_data', 'wiki*').pipe_handlers(
+            self.filter).run()
 
     def filter(self, input, previous_input: tuple):
         return True

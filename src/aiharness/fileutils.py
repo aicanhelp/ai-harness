@@ -1,9 +1,11 @@
+import os
 from inspect import isfunction, ismethod
 
 from box import Box
 from aiharness.tqdmutils import ProgressBar
 from boltons.fileutils import mkdir_p
 from pathlib import Path
+import zipfile
 
 
 class PipeHandler():
@@ -209,6 +211,9 @@ class DefaultProgressBarHandler(PipeHandler):
     def handle(self, input, previous_input: tuple):
         self._bar.update()
 
+    def final(self):
+        self._bar.close()
+
 
 class JsonReaderPipeline(FileReaderPipeLine):
     def __init__(self, input_file):
@@ -244,10 +249,72 @@ def list_dir(path, pattern='*'):
     return [x.name for x in p.glob(pattern) if x.is_dir()]
 
 
+def zip_files(out_file, *input_files):
+    def addToZip(zf, path, zippath):
+        if os.path.isfile(path):
+            zf.write(path, zippath, zipfile.ZIP_DEFLATED)
+        elif os.path.isdir(path):
+            if zippath:
+                zf.write(path, zippath)
+            for nm in os.listdir(path):
+                addToZip(zf,
+                         os.path.join(path, nm), os.path.join(zippath, nm))
+        # else: ignore
+
+    with zipfile.ZipFile(out_file, 'w') as zf:
+        for path in input_files[2:]:
+            zippath = os.path.basename(path)
+            if not zippath:
+                zippath = os.path.basename(os.path.dirname(path))
+            if zippath in ('', os.curdir, os.pardir):
+                zippath = ''
+            addToZip(zf, path, zippath)
+
+
+def join_path(*files):
+    result = files[0]
+    for file in files[1:]:
+        if result is None:
+            result = file
+            continue
+        if file is None:
+            continue
+        result = os.path.join(result, file)
+    return result
+
+
+def extract_zip(zip_file, dest_dir, members=None):
+    mkdir_p(dest_dir)
+    with zipfile.ZipFile(zip_file, 'r') as zf:
+        zf.extractall(dest_dir, members)
+
+
+class DirectoryNavigator():
+    def __init__(self, work_dir, pattern='*', bar_step_size=1):
+        self.work_dir = os.fspath(work_dir)
+        self.pattern = pattern
+        self._bar = ProgressBar(bar_step_size)
+
+    def _loop_dir(self, dir, handler=None):
+        file_dir = join_path(self.work_dir, dir)
+        for file in list_file(file_dir, self.pattern):
+            if handler is not None:
+                handler(join_path(file_dir, file), dir)
+                self._bar.update()
+        for d in list_dir(file_dir):
+            self._loop_dir(join_path(dir, d), handler)
+
+    def run(self, handler=None):
+        print('Processing files in directory: ' + self.work_dir)
+        self._loop_dir(None, handler)
+        self._bar.close()
+
+
 class DefaultJsonDirectoryFilter():
-    def __init__(self, input, output, bar_step_size=100):
-        self._input = input
-        self._output = output
+    def __init__(self, input, output, pattern='*', bar_step_size=100):
+        self.nav = DirectoryNavigator(input, pattern, 1)
+        self.input = input
+        self.output = output
         self._bar_step_size = bar_step_size
         self._handlers = None
 
@@ -255,16 +322,34 @@ class DefaultJsonDirectoryFilter():
         self._handlers = handlers
         return self
 
+    def _handler_json_file(self, file, dir):
+        out_dir = join_path(self.output, dir)
+        out_file = join_path(out_dir, os.path.basename(file))
+        mkdir_p(out_dir)
+        DefaultJsonFileFilter(file, out_file, self._bar_step_size).pipe(*(self._handlers)).end()
+
     def run(self):
-        mkdir_p(self._output)
-        files = list_file(self._input)
-        if len(files) == 0:
-            print('No files in directory ' + self._input)
+        mkdir_p(self.output)
+        self.nav.run(self._handler_json_file)
+
+
+class JsonZipFilesFilter(DefaultJsonDirectoryFilter):
+    def __init__(self, zip_file, work_dir=None, pattern='*', bar_step_size=100):
+        self.unzip_dir, self.out_dir = JsonZipFilesFilter.__make_input_dir(zip_file, work_dir)
+        super().__init__(self.unzip_dir, self.out_dir, pattern, bar_step_size)
+        self.zip_file = zip_file
+
+    @staticmethod
+    def __make_input_dir(zip_file, work_dir):
+        unzip_dir = join_path(work_dir, 'unzip_' + os.path.basename(zip_file))
+        out_dir = join_path(work_dir, 'out_' + os.path.basename(zip_file))
+        return unzip_dir, out_dir
+
+    def run(self):
+        if not os.path.exists(self.zip_file):
             return
-        for file in list_file(self._input):
-            output_file = self._output + '/' + file
-            print('Processing Json file: %s to %s' % (file, output_file))
-            DefaultJsonFileFilter(self._input + '/' + file,
-                                  output_file,
-                                  self._bar_step_size
-                                  ).pipe(*(self._handlers)).end()
+
+        print('Processing files in zip file: ' + self.zip_file)
+        if not os.path.exists(self.unzip_dir):
+            extract_zip(self.zip_file, self.unzip_dir)
+        super().run()
