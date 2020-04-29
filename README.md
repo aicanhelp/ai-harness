@@ -15,6 +15,7 @@ Current features:
 - 2019.4.23, version: 0.3.5: Added a Json file Reader
 - 2019.4.24, version: 0.3.6: Added a data utils for processing data
 - 2019.4.26, version: 0.3.7 Added a data utils for processing data for zip file
+- 2019.4.28, version: 0.3.8 Added QueueExecutor
 
 ## Examples
 ### XMLConfiguration Example

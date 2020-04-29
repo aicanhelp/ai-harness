@@ -120,8 +120,16 @@ class FileReaderPipeLine():
         self._onEmptyLine = onEmptyLine
         return self
 
-    def pipe(self, *handlers):
+    def head_pipe(self, *handlers):
+        self.handlers_container.pre_handlers.tail(*handlers)
+        return self
+
+    def mid_pipe(self, *handlers):
         self.handlers_container.handlers.tail(*handlers)
+        return self
+
+    def tail_pipe(self, *handlers):
+        self.handlers_container.post_handlers.tail(*handlers)
         return self
 
     def _execute_pipes(self, handlers):
@@ -171,37 +179,26 @@ class FileReaderPipeLine():
         return result
 
 
-class JsonHandler(PipeHandler):
+class JsonParseHandler(PipeHandler):
     def handle(self, input, previous_input: tuple):
         return Box.from_json(input)
 
 
 class TextWriteHandler(PipeHandler):
-    def __init__(self, output_file):
+    def __init__(self, output_file, close=True, origin=False):
         self._out_writer = open(output_file, 'w')
+        self._close = close
+        self._origin = origin
 
     def handle(self, input, previous_input: tuple):
-        self._out_writer.write(input)
+        text = input
+        if self._origin:
+            text = previous_input[0]
+        self._out_writer.write(text)
 
-    def final(self):
-        if not self._out_writer.closed:
+    def final(self, force=False):
+        if (self._close or force) and not self._out_writer.closed:
             self._out_writer.close()
-
-
-class OriginTextWriteHandler(TextWriteHandler):
-    def __init__(self, output_file):
-        super().__init__(output_file)
-
-    def handle(self, input, previous_input: tuple):
-        self._out_writer.write(previous_input[0])
-
-
-class JsonWriteHandler(PipeHandler):
-    def __init__(self, output_file):
-        self._out_writer = open(output_file, 'w')
-
-    def handle(self, input, previous_input: tuple):
-        self._out_writer.write(input.to_json())
 
 
 class DefaultProgressBarHandler(PipeHandler):
@@ -213,26 +210,6 @@ class DefaultProgressBarHandler(PipeHandler):
 
     def final(self):
         self._bar.close()
-
-
-class JsonReaderPipeline(FileReaderPipeLine):
-    def __init__(self, input_file):
-        super().__init__(input_file)
-        super().handlers_container.handlers.head(JsonHandler)
-
-
-class DefaultFileLineFilter(FileReaderPipeLine):
-    def __init__(self, input_file, output_file, bar_step_size=100):
-        super().__init__(input_file)
-        self._out_writer = OriginTextWriteHandler(output_file)
-        self._bar = DefaultProgressBarHandler(bar_step_size)
-        self.handlers_container.post_handlers.tail(self._out_writer, self._bar)
-
-
-class DefaultJsonFileFilter(DefaultFileLineFilter):
-    def __init__(self, input_file, output_file, bar_step_size=100):
-        super().__init__(input_file, output_file, bar_step_size)
-        self.handlers_container.handlers.head(JsonHandler)
 
 
 def list_file(path, pattern='*'):
@@ -311,32 +288,55 @@ class DirectoryNavigator():
 
 
 class DefaultJsonDirectoryFilter():
-    def __init__(self, input, output, pattern='*', bar_step_size=100):
+    def __init__(self, input, output, out_one_file=False, pattern='*', bar_step_size=100):
         self.nav = DirectoryNavigator(input, pattern, 1)
         self.input = input
         self.output = output
+        self.out_one_file = out_one_file
         self._bar_step_size = bar_step_size
+        self._writer = self.__total_make_writer()
         self._handlers = None
 
     def pipe_handlers(self, *handlers):
         self._handlers = handlers
         return self
 
+    def __total_make_writer(self):
+        if self.out_one_file:
+            return TextWriteHandler(self.output, close=False)
+        mkdir_p(self.output)
+        return None
+
+    def _file_reader(self, file):
+        FileReaderPipeLine(file).head_pipe(JsonParseHandler).mid_pipe(self._handlers).tail_pipe()
+
     def _handler_json_file(self, file, dir):
-        out_dir = join_path(self.output, dir)
-        out_file = join_path(out_dir, os.path.basename(file))
-        mkdir_p(out_dir)
-        DefaultJsonFileFilter(file, out_file, self._bar_step_size).pipe(*(self._handlers)).end()
+        writer = self._writer
+        if not writer:
+            out_dir = join_path(self.output, dir)
+            out_file = join_path(out_dir, os.path.basename(file))
+            mkdir_p(out_dir)
+            writer = TextWriteHandler(out_file)
+
+        fileReader = FileReaderPipeLine(file)
+        fileReader.head_pipe(JsonParseHandler)
+        fileReader.mid_pipe(*self._handlers)
+        fileReader.tail_pipe(writer, DefaultProgressBarHandler(self._bar_step_size))
+
+        fileReader.end()
 
     def run(self):
-        mkdir_p(self.output)
         self.nav.run(self._handler_json_file)
+        if self._writer:
+            self._writer.final(True)
 
 
 class JsonZipFilesFilter(DefaultJsonDirectoryFilter):
-    def __init__(self, zip_file, work_dir=None, pattern='*', bar_step_size=100):
-        self.unzip_dir, self.out_dir = JsonZipFilesFilter.__make_input_dir(zip_file, work_dir)
-        super().__init__(self.unzip_dir, self.out_dir, pattern, bar_step_size)
+    def __init__(self, zip_file, work_dir=None, out_file=None, pattern='*', bar_step_size=100):
+        self.unzip_dir, self.out = JsonZipFilesFilter.__make_input_dir(zip_file, work_dir)
+        if out_file is not None:
+            self.out = join_path(self.out, out_file)
+        super().__init__(self.unzip_dir, self.out, (out_file is not None), pattern, bar_step_size)
         self.zip_file = zip_file
 
     @staticmethod

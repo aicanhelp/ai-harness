@@ -1,4 +1,4 @@
-from aiharness.fileutils import PipeHandler, FileReaderPipeLine, DefaultFileLineFilter, DefaultJsonDirectoryFilter, \
+from aiharness.fileutils import PipeHandler, FileReaderPipeLine, DefaultJsonDirectoryFilter, \
     list_dir, list_file, join_path, JsonZipFilesFilter, extract_zip
 
 
@@ -46,9 +46,9 @@ class Test_FileReaderPipeline():
     def test_pipe_handlers(self):
         pipeline = FileReaderPipeLine('./test.json')
         lastHandler = TestLastPipeHanler()
-        pipeline.pipe(TestFirstPipeHanlder, TestPipeHanlder(),
-                      TestPipeHanlder, TestPipeHanlder(), self.function_pipe_handler,
-                      lastHandler)
+        pipeline.mid_pipe(TestFirstPipeHanlder, TestPipeHanlder(),
+                          TestPipeHanlder, TestPipeHanlder(), self.function_pipe_handler,
+                          lastHandler)
         result = pipeline.end()
         assert result == 5 and lastHandler.total[0] == [0, 1, 2, 3, 4]
 
@@ -57,8 +57,13 @@ class Test_JsonDirectoryFilter():
     def test(self):
         DefaultJsonDirectoryFilter('./test_data/json', '../../build/test_data/json').pipe_handlers(self.filter).run()
 
+    def test_news(self):
+        DefaultJsonDirectoryFilter('./test_data/news', '../../build/test_data/news').pipe_handlers(self.filter).run()
+
     def filter(self, input, previous_input: tuple):
-        return True
+        if len(input.content) < 50:
+            return False
+        return input.content + '\n\n'
 
 
 def test_extract_zip():
@@ -67,11 +72,30 @@ def test_extract_zip():
 
 class TestJsonZipFilter():
     def test(self):
-        JsonZipFilesFilter('./test_data/wiki_zh2019.zip', '../../build/test_data', 'wiki*').pipe_handlers(
+        JsonZipFilesFilter('./test_data/wiki_zh2019.zip', '../../build/test_data', pattern='wiki*').pipe_handlers(
+            self.filter).run()
+
+    def test_to_one(self):
+        JsonZipFilesFilter('./test_data/wiki_zh2019.zip', '../../build/test_data', 'all.json',
+                           pattern='wiki*').pipe_handlers(
             self.filter).run()
 
     def filter(self, input, previous_input: tuple):
-        return True
+        if len(input.text) < 100:
+            return False
+        text = input.text.split('\n\n')
+        text = [self.remove_last_r(t) for t in text[1:]]
+        return ''.join(text) + '\n\n'
+
+    def remove_last_r(self, text: str):
+        if text == '\n' or len(text) == 0:
+            return ''
+        last = -1
+        while text[last] == '\n':
+            last = last - 1
+        if last == -1:
+            return text
+        return text[:last + 1]
 
 
 def test_list_file():

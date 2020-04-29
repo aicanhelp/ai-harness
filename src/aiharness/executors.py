@@ -1,8 +1,9 @@
 import logging
 import multiprocessing as mp
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from aiharness import harnessutils as utils
 
-log = logging.getLogger(__name__)
+log = utils.getLogger('aiharness')
 
 
 class Executor():
@@ -59,17 +60,45 @@ class Executor():
         return self.results
 
 
+class QueueExecutor():
+    def __init__(self, items, batch_size=1, worker_num=mp.cpu_count()):
+        self.items = items
+        self.worker_num = worker_num
+        self.batch_size = batch_size
+        self._handler = None
+
+    def run(self, handler):
+        result = []
+        self._handler = handler
+
+        log.info("Start Queue Excecutor to handle data, len: " + str(len(self.items)))
+        try:
+            with ProcessPoolExecutor(max_workers=self.worker_num) as executor:
+                result = executor.map(self._get_and_handle, self.items, chunksize=self.batch_size)
+        except Exception as ex:
+            log.error(ex)
+        return result
+
+    def _get_and_handle(self, *items):
+        try:
+            return self._handler(items)
+        except Exception as ex:
+            log.error(ex)
+        return None
+
+
 class BatchExecutor():
-    def __init__(self, items, worker_num=mp.cpu_count(), check_count=10000):
+    def __init__(self, items, worker_num=mp.cpu_count()):
         self.items = items
         self.max_index = len(items)
         self.worker_num = worker_num
         self.batch_size = (self.max_index // worker_num) + 1
-        self.check_count = check_count
+        self._handler = None
 
-    def run(self):
+    def run(self, handler=None):
         result = []
         futures = []
+        self._handler = handler
 
         log.info("Start Batch handler Excecutor to handle data, len: " + str(self.max_index))
         try:
@@ -88,12 +117,15 @@ class BatchExecutor():
         return result
 
     def handle_items(self, from_index, to_index):
-        raise NotImplementedError()
+        if self._handler:
+            for i in range(from_index, to_index):
+                self._handler(self.items[i])
 
 
 class BatchHandlerExecutor(BatchExecutor):
-    def __init__(self, items, fn, worker_num=mp.cpu_count(), check_count=10000):
-        super().__init__(items, worker_num, check_count)
+    def __init__(self, items, fn, worker_num=mp.cpu_count(), check_count=1000):
+        super().__init__(items, worker_num)
+        self.check_count = check_count
         self.fn = fn
 
     def handle_items(self, from_index, to_index):

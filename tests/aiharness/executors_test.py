@@ -6,7 +6,7 @@ from aiharness import harnessutils as utils
 from threading import current_thread
 from time import sleep
 
-from aiharness.executors import BatchHandlerExecutor, Executor
+from aiharness.executors import BatchHandlerExecutor, Executor, QueueExecutor
 
 log = utils.getLogger('aiharness')
 
@@ -42,3 +42,14 @@ class Test_BatchHandlerExecutor:
         executor = BatchHandlerExecutor(items, self._handleQueueItem)
         result = executor.run()
         log.info(str(result) + str(isinstance(items, list)))
+
+
+class Test_QueueExecutor:
+    def test_queueExecutor(self):
+        items = [i for i in range(100)]
+        executor = QueueExecutor(items)
+        executor.run(self._handleQueueItem)
+
+    def _handleQueueItem(self, items):
+        log.info(str(items))
+        return items
