@@ -161,6 +161,7 @@ class Arguments:
 
         action = self.__get_type_action(field)
 
+        name = name.replace('_', '-')
         parser.add_argument('--' + name,
                             default=v,
                             required=False,
