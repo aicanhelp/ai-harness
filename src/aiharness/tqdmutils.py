@@ -14,10 +14,10 @@ class ProgressBar():
         self._cur_bar.update(1)
         self._cur_bar.set_description_str('Processing: %s/%s,total: %s' % (self._cur_pos, self._step_size, self._total))
         if self._cur_pos == self._step_size:
-            self._reset()
+            self.reset(self._step_size)
 
-    def _reset(self):
-        self._cur_bar.reset()
+    def reset(self, total):
+        self._cur_bar.reset(total)
         self._cur_pos = 0
 
     def close(self):

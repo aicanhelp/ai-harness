@@ -6,8 +6,8 @@ Current features:
 - XMLConfiguration: for loading a configuration defined in xml files into a Python Object
 - Arguments: Mapping a Python Object to the arguments of argparse 
 - inspector: Some convenient method for class/object  
-- pytorch:  Some convenient tools for pytorch  
-- transformer: 
+- executors: Some convenient ProcessExecutor
+- fileutils: DirectoryNavigator, FileReadPipeLine
 - others:
 
 ## Log
@@ -18,7 +18,7 @@ Current features:
 - 2019.4.28, version: 0.3.8 Added QueueExecutor
 
 ## Examples
-### XMLConfiguration Example
+### 1. XMLConfiguration
 ##### (1) Define the configuration in xml file like:
 ```xml
 <?xml version="1.0" encoding="UTF-8" ?>

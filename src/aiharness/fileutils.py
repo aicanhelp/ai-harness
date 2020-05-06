@@ -1,215 +1,12 @@
 import os
-from inspect import isfunction, ismethod
 
 from box import Box
+from dataclasses import dataclass
+
 from aiharness.tqdmutils import ProgressBar
 from boltons.fileutils import mkdir_p
 from pathlib import Path
 import zipfile
-
-
-class PipeHandler():
-
-    def handle(self, input, previous_input: tuple):
-        '''
-        For the FileReaderPipeLine to define the handler in each step
-        :param current: the input of current setup, actually it is the output of last setup
-        :param previous: the inputs of the previous setup
-        :return: None or the result of this handler, if the return is None, the input will be as the return by the FileReaderPipeline
-        '''
-        return input
-
-    def __call__(self, input, previous_input: tuple):
-        return self.handle(input, previous_input)
-
-    def final(self):
-        pass
-
-
-class FunctionPipeHandler(PipeHandler):
-    def __init__(self, f):
-        self._f = f
-
-    def handle(self, input, previous_input: tuple):
-        return self._f(input, previous_input)
-
-
-class PipeFilter(PipeHandler):
-
-    def handle(self, input, previous_input: tuple):
-        '''
-        For the FileReaderPipeLine to define the filter in each step
-        :param current: the input of current setup, actually it is the output of last setup
-        :param previous: the inputs of the previous setup
-        :return: None or the result of this filter,
-        if the return is None, FileReaderPipeline will end this Pipeline.( Note: this is the different with the PipeHandler)
-        '''
-        return True
-
-
-def _instance_handler(handler):
-    if handler is None:
-        raise Exception('The Pipe handler can not be None')
-    t = type(handler)
-    if t == type:
-        if handler != PipeHandler and not issubclass(handler, PipeHandler):
-            raise Exception('The Pipe handler should be PipeHandler or PipeFilter')
-        return handler()
-    else:
-        if isfunction(handler) or ismethod(handler):
-            return FunctionPipeHandler(handler)
-        if not isinstance(handler, PipeHandler):
-            raise Exception('The Pipe handler should be PipeHandler or PipeFilter')
-
-    return handler
-
-
-class HandlerContainer():
-    def __init__(self):
-        self._handlers = ()
-
-    def head(self, *handlers):
-        if not handlers:
-            return
-        self._handlers = handlers + self._handlers
-
-    def tail(self, *handlers):
-        if not handlers:
-            return
-        self._handlers = self._handlers + handlers
-
-    def before(self, handler, *handlers):
-        if not handlers:
-            return
-        if not handler:
-            self._handlers = handlers
-        for i, handler in enumerate(self._handlers):
-            if handler == handler:
-                self._handlers = self._handlers[:i] + handlers + self._handlers[i:]
-
-    def after(self, handler, *handlers):
-        if not handlers:
-            return
-        if not handler:
-            self._handlers = handlers
-        for i, handler in enumerate(self._handlers):
-            if handler == handler:
-                self._handlers = self._handlers[:i + 1] + handlers + self._handlers[i + 1:]
-
-    def all(self):
-        return self._handlers
-
-
-class PipelineHandlers():
-    def __init__(self):
-        self.pre_handlers: HandlerContainer = HandlerContainer()
-        self.post_handlers: HandlerContainer = HandlerContainer()
-        self.handlers: HandlerContainer = HandlerContainer()
-
-    def all_handlers(self):
-        return self.pre_handlers.all() + self.handlers.all() + self.post_handlers.all()
-
-
-class FileReaderPipeLine():
-    def __init__(self, file_path):
-        self._file_path = file_path
-        self._onEmptyLine = None
-        self.handlers_container: PipelineHandlers = PipelineHandlers()
-
-    def on_empty_line(self, onEmptyLine):
-        self._onEmptyLine = onEmptyLine
-        return self
-
-    def head_pipe(self, *handlers):
-        self.handlers_container.pre_handlers.tail(*handlers)
-        return self
-
-    def mid_pipe(self, *handlers):
-        self.handlers_container.handlers.tail(*handlers)
-        return self
-
-    def tail_pipe(self, *handlers):
-        self.handlers_container.post_handlers.tail(*handlers)
-        return self
-
-    def _execute_pipes(self, handlers):
-        count = 0
-        with open(self._file_path, 'r') as f:
-            while True:
-                read_line = f.readline()
-
-                if len(read_line) == 0:
-                    return count
-                if read_line == '\n':
-                    if self._onEmptyLine is not None:
-                        self._onEmptyLine()
-                    continue
-
-                result = ()
-                input = read_line
-                for handler in handlers:
-                    if handler is None:
-                        continue
-
-                    next = handler(input, result)
-
-                    if not next and type(next) == bool:
-                        break
-                    elif next and type(next) != bool:
-                        pass
-                    else:
-                        next = input
-
-                    result = result + (input,)
-                    input = next
-                count = count + 1
-
-    def end(self):
-        can_handlers = self.handlers_container.all_handlers()
-        if not can_handlers:
-            handlers = [PipeHandler()]
-        else:
-            handlers = [_instance_handler(handler) for handler in can_handlers]
-
-        result = self._execute_pipes(handlers)
-
-        for handler in handlers:
-            handler.final()
-
-        return result
-
-
-class JsonParseHandler(PipeHandler):
-    def handle(self, input, previous_input: tuple):
-        return Box.from_json(input)
-
-
-class TextWriteHandler(PipeHandler):
-    def __init__(self, output_file, close=True, origin=False):
-        self._out_writer = open(output_file, 'w')
-        self._close = close
-        self._origin = origin
-
-    def handle(self, input, previous_input: tuple):
-        text = input
-        if self._origin:
-            text = previous_input[0]
-        self._out_writer.write(text)
-
-    def final(self, force=False):
-        if (self._close or force) and not self._out_writer.closed:
-            self._out_writer.close()
-
-
-class DefaultProgressBarHandler(PipeHandler):
-    def __init__(self, bar_step_size=100):
-        self._bar = ProgressBar(bar_step_size)
-
-    def handle(self, input, previous_input: tuple):
-        self._bar.update()
-
-    def final(self):
-        self._bar.close()
 
 
 def list_file(path, pattern='*'):
@@ -224,6 +21,13 @@ def list_dir(path, pattern='*'):
     if not p.exists():
         print('Directory is not exists.')
     return [x.name for x in p.glob(pattern) if x.is_dir()]
+
+
+def list(path, pattern='*', file=True):
+    if file:
+        return list_file(path, pattern)
+    else:
+        return list_dir(path, pattern)
 
 
 def zip_files(out_file, *input_files):
@@ -261,95 +65,264 @@ def join_path(*files):
 
 
 def extract_zip(zip_file, dest_dir, members=None):
+    if not zipfile.is_zipfile(zip_file):
+        return
     mkdir_p(dest_dir)
     with zipfile.ZipFile(zip_file, 'r') as zf:
         zf.extractall(dest_dir, members)
 
 
-class DirectoryNavigator():
-    def __init__(self, work_dir, pattern='*', bar_step_size=1):
-        self.work_dir = os.fspath(work_dir)
-        self.pattern = pattern
+class EmptyLineFilter():
+    def __call__(self, line, *args):
+        return line == '\n'
+
+
+class FileLineReader():
+    def __init__(self, bar_step_size=1000, exclude_empty_line=True):
+        self._handlers = ()
+        self._exclude_empty_line = exclude_empty_line
         self._bar = ProgressBar(bar_step_size)
 
-    def _loop_dir(self, dir, handler=None):
-        file_dir = join_path(self.work_dir, dir)
-        for file in list_file(file_dir, self.pattern):
-            if handler is not None:
-                handler(join_path(file_dir, file), dir)
-                self._bar.update()
-        for d in list_dir(file_dir):
-            self._loop_dir(join_path(dir, d), handler)
-
-    def run(self, handler=None):
-        print('Processing files in directory: ' + self.work_dir)
-        self._loop_dir(None, handler)
-        self._bar.close()
-
-
-class DefaultJsonDirectoryFilter():
-    def __init__(self, input, output, out_one_file=False, pattern='*', bar_step_size=100):
-        self.nav = DirectoryNavigator(input, pattern, 1)
-        self.input = input
-        self.output = output
-        self.out_one_file = out_one_file
-        self._bar_step_size = bar_step_size
-        self._writer = self.__total_make_writer()
-        self._handlers = None
-
-    def pipe_handlers(self, *handlers):
-        self._handlers = handlers
+    def pipe(self, *handlers):
+        self._handlers = self._handlers + handlers
         return self
 
-    def __total_make_writer(self):
-        if self.out_one_file:
-            return TextWriteHandler(self.output, close=False)
-        mkdir_p(self.output)
-        return None
+    def _read_line(self, file):
+        with open(file, 'r') as f:
+            count = 0
+            while True:
+                self._bar.update()
+                read_line = f.readline()
 
-    def _file_reader(self, file):
-        FileReaderPipeLine(file).head_pipe(JsonParseHandler).mid_pipe(self._handlers).tail_pipe()
+                if len(read_line) == 0:
+                    return count
 
-    def _handler_json_file(self, file, dir):
-        writer = self._writer
+                if self._exclude_empty_line and read_line.strip() == '':
+                    continue
+
+                input = read_line
+                result = ()
+                for handler in self._handlers:
+                    if handler is None:
+                        continue
+
+                    next = handler(input, result)
+
+                    if not next and type(next) == bool:
+                        break
+                    elif next and type(next) != bool:
+                        pass
+                    else:
+                        next = input
+
+                    result = result + (input,)
+                    input = next
+                count = count + 1
+
+    def read(self, file, *args):
+        try:
+            return self._read_line(file)
+        finally:
+            self._bar.close()
+
+
+class PathNavigator():
+    def on_item(self, onFolder=None, onFile=None, *args):
+        pass
+
+    def nav(self, dir, *args):
+        pass
+
+
+@dataclass
+class NavState:
+    folder_count = 0
+    file_count = 0
+
+    def folders(self, count):
+        self.folder_count = self.folder_count + count
+        return self
+
+    def files(self, count):
+        self.file_count = self.file_count + count
+        return self
+
+    def inc_folder(self):
+        self.folder_count = self.folder_count + 1
+        return self
+
+    def inc_file(self):
+        self.file_count = self.file_count + 1
+        return self
+
+
+class DirNavigator(PathNavigator):
+    def __init__(self, folder_pattern=None, file_pattern=None, bar_step_size=10):
+        self._folder_pattern = folder_pattern if folder_pattern else '*'
+        self._file_pattern = file_pattern if file_pattern else '*'
+        self._onFolder, self._onFile, self._onZipFile = None, None, None
+        self._bar = ProgressBar(bar_step_size)
+        self._folderFilters, self._fileFilters = (), ()
+
+    def on_item(self, onFolder=None, onFile=None, onZipFile=None):
+        self._onFolder, self._onFile, self._onZipFile = onFolder, onFile, onZipFile
+        return self
+
+    def filters(self, folderFilters=None, fileFilters=None):
+        self._folderFilters, self._fileFilters = folderFilters, fileFilters
+        return self
+
+    def folder_filters(self, *folderFilters):
+        self._folderFilters = self._folderFilters + folderFilters
+        return self
+
+    def file_filters(self, *fileFilters):
+        self._fileFilters = self._fileFilters + fileFilters
+        return self
+
+    def __filter(self, filters, name, dir):
+        if not filters:
+            return True
+        for filter in filters:
+            if not filter(name, dir):
+                return False
+        return True
+
+    def _loop_dir(self, parent, dir, state: NavState):
+        file_dir = join_path(parent, dir)
+        folders = list_dir(file_dir, self._folder_pattern)
+        files = list_file(file_dir, self._file_pattern)
+
+        for d in folders:
+            self._bar.update()
+            if not self.__filter(self._folderFilters, d, file_dir):
+                continue
+            state.inc_folder()
+            if not self._onFolder or self._onFolder(d, file_dir):
+                self._loop_dir(join_path(dir, d), parent, state)
+
+        for f in files:
+            self._bar.update()
+            if not self.__filter(self._fileFilters, f, file_dir):
+                continue
+            if zipfile.is_zipfile(f) and self._onZipFile:
+                self._onZipFile(f, file_dir)
+                continue
+            state.inc_file()
+            if self._onFile:
+                self._onFile(f, file_dir)
+
+    def nav(self, dir, *args):
+        navState = NavState()
+        self._loop_dir(None, dir, navState)
+        self._bar.close()
+        return (navState.folder_count, navState.file_count)
+
+
+class DirNavigatorWithZip(DirNavigator):
+    def __init__(self, folder_pattern=None, file_pattern=None):
+        super().__init__(folder_pattern, file_pattern)
+
+    def __handle_zip_file(self, unzip_dir):
+        def handle_zip(zipfile, dir):
+            to_zip_dir = join_path(unzip_dir, dir, 'unzip_' + os.path.basename(zipfile))
+            extract_zip(zipfile, to_zip_dir)
+            super().nav(to_zip_dir)
+
+        return handle_zip
+
+    def nav(self, dir, unzip_dir=None, *args):
+        super().on_item(onZipFile=self.__handle_zip_file(unzip_dir))
+        super().nav(dir)
+
+
+class To_Json():
+    def __call__(self, line, *args):
+        return Box.from_json(line)
+
+
+class Line_origin():
+    def __call__(self, input, previous_input: tuple):
+        return previous_input[0]
+
+
+class Line_Writer():
+    def __init__(self, output_file):
+        self._out_writer = open(output_file, 'w')
+
+    def __call__(self, input, previous_input: tuple):
+        self._out_writer.write(input)
+
+    def close(self):
+        if not self._out_writer.closed:
+            self._out_writer.close()
+
+
+class JsonFileLineReader(FileLineReader):
+    def __init__(self, bar_step_size=1000):
+        super().__init__(bar_step_size)
+        self.handlers = [To_Json]
+
+
+class FileLineReadAndWrite():
+    def __init__(self, out_dir, bar_step_size=100):
+        self.bar_step_size = bar_step_size
+        self.out_dir = out_dir
+        self.filters = []
+
+    def filter(self, filters):
+        self.filters = self.filters + filters
+
+    def read(self, file, dir, writer=None):
+        myWriter = writer
         if not writer:
-            out_dir = join_path(self.output, dir)
-            out_file = join_path(out_dir, os.path.basename(file))
-            mkdir_p(out_dir)
-            writer = TextWriteHandler(out_file)
+            myWriter = self._writer(file, dir, self.out_dir)
+        filters = self.filters + [myWriter]
+        file_reader = FileLineReader(self.bar_step_size).pipe(filters)
+        file_reader.read(file)
+        if not writer:
+            myWriter.close()
 
-        fileReader = FileReaderPipeLine(file)
-        fileReader.head_pipe(JsonParseHandler)
-        fileReader.mid_pipe(*self._handlers)
-        fileReader.tail_pipe(writer, DefaultProgressBarHandler(self._bar_step_size))
-
-        fileReader.end()
-
-    def run(self):
-        self.nav.run(self._handler_json_file)
-        if self._writer:
-            self._writer.final(True)
+    def _writer(self, file, dir, out_dir):
+        out_dir = join_path(out_dir, dir)
+        out_file = join_path(out_dir, os.path.basename(file))
+        return Line_Writer(out_file)
 
 
-class JsonZipFilesFilter(DefaultJsonDirectoryFilter):
-    def __init__(self, zip_file, work_dir=None, out_file=None, pattern='*', bar_step_size=100):
-        self.unzip_dir, self.out = JsonZipFilesFilter.__make_input_dir(zip_file, work_dir)
-        if out_file is not None:
-            self.out = join_path(self.out, out_file)
-        super().__init__(self.unzip_dir, self.out, (out_file is not None), pattern, bar_step_size)
-        self.zip_file = zip_file
+class DefaultDirectoryFilter():
+    def __init__(self, output, unzip_dir=None, folder_pattern='*', file_pattern='*', bar_step_size=100):
+        self.browser = self._create_browser(unzip_dir, folder_pattern, file_pattern)
+        self.readWrite = FileLineReadAndWrite(output, bar_step_size=bar_step_size)
 
-    @staticmethod
-    def __make_input_dir(zip_file, work_dir):
-        unzip_dir = join_path(work_dir, 'unzip_' + os.path.basename(zip_file))
-        out_dir = join_path(work_dir, 'out_' + os.path.basename(zip_file))
-        return unzip_dir, out_dir
+    def _create_browser(self, unzip_dir, folder_pattern='*', file_pattern='*'):
+        if unzip_dir:
+            return DirNavigatorWithZip(folder_pattern, file_pattern)
+        else:
+            return DirNavigator(folder_pattern, file_pattern)
 
-    def run(self):
-        if not os.path.exists(self.zip_file):
-            return
+    def line_filters(self, *filters):
+        self.readWrite.filter(filters)
+        return self
 
-        print('Processing files in zip file: ' + self.zip_file)
-        if not os.path.exists(self.unzip_dir):
-            extract_zip(self.zip_file, self.unzip_dir)
-        super().run()
+    def path_filters(self, folder_filters, file_filters):
+        self.browser.filters(folder_filters, file_filters)
+        return self
+
+    def _on_file(self, writer=None):
+        def onFile(file, dir):
+            self.readWrite.read(file, dir, writer)
+
+        return onFile
+
+    def handle(self, dir, outfile=None):
+        writer = None
+        if outfile:
+            writer = Line_Writer(outfile)
+        self.browser.on_item(onFile=self._on_file(writer)).nav(dir)
+        writer.close()
+
+
+class DefaultJsonDirectoryFilter(DefaultDirectoryFilter):
+    def __init__(self, output, unzip_dir=None, dir_pattern='*', file_pattern='*', bar_step_size=100):
+        super().__init__(output, unzip_dir, dir_pattern, file_pattern, bar_step_size)
+        super().line_filters(To_Json)
