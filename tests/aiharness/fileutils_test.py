@@ -46,5 +46,17 @@ class Test_DirNavigator():
         assert (file_count == 4 and folder_count == 2)
 
 
+class Test_DefaultJsonDirectoryFilter():
+    def get_content(self, input, previous):
+        if len(input.content) < 100:
+            return False
+        return input.content + '\n\n'
+
+    def test(self):
+        DefaultJsonDirectoryFilter('../../build/news',
+                                   file_pattern="*.json", bar_step_size=0).line_filters(self.get_content).handle(
+            './test_data/news')
+
+
 def test_list_file():
     print(list_file('./test_data'))

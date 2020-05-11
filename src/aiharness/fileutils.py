@@ -1,4 +1,5 @@
 import os
+from inspect import isfunction, ismethod
 
 from box import Box
 from dataclasses import dataclass
@@ -7,6 +8,16 @@ from aiharness.tqdmutils import ProgressBar
 from boltons.fileutils import mkdir_p
 from pathlib import Path
 import zipfile
+
+
+def _instance_filter(handler):
+    if handler is None:
+        raise Exception('The Pipe handler can not be None')
+    t = type(handler)
+    if t == type:
+        return handler()
+
+    return handler
 
 
 def list_file(path, pattern='*'):
@@ -102,6 +113,7 @@ class FileLineReader():
 
                 input = read_line
                 result = ()
+
                 for handler in self._handlers:
                     if handler is None:
                         continue
@@ -189,32 +201,34 @@ class DirNavigator(PathNavigator):
         return True
 
     def _loop_dir(self, parent, dir, state: NavState):
-        file_dir = join_path(parent, dir)
+        file_dir = join_path(self._base_dir, parent, dir)
+        relate_dir = join_path(parent, dir)
         folders = list_dir(file_dir, self._folder_pattern)
         files = list_file(file_dir, self._file_pattern)
 
         for d in folders:
             self._bar.update()
-            if not self.__filter(self._folderFilters, d, file_dir):
+            if not self.__filter(self._folderFilters, d, relate_dir):
                 continue
             state.inc_folder()
-            if not self._onFolder or self._onFolder(d, file_dir):
-                self._loop_dir(join_path(dir, d), parent, state)
+            if not self._onFolder or self._onFolder(d, relate_dir):
+                self._loop_dir(relate_dir, d, state)
 
         for f in files:
             self._bar.update()
-            if not self.__filter(self._fileFilters, f, file_dir):
+            if not self.__filter(self._fileFilters, f, relate_dir):
                 continue
             if zipfile.is_zipfile(f) and self._onZipFile:
-                self._onZipFile(f, file_dir)
+                self._onZipFile(f, relate_dir)
                 continue
             state.inc_file()
             if self._onFile:
-                self._onFile(f, file_dir)
+                self._onFile(f, relate_dir)
 
     def nav(self, dir, *args):
         navState = NavState()
-        self._loop_dir(None, dir, navState)
+        self._base_dir = dir
+        self._loop_dir(None, '', navState)
         self._bar.close()
         return (navState.folder_count, navState.file_count)
 
@@ -268,23 +282,24 @@ class FileLineReadAndWrite():
     def __init__(self, out_dir, bar_step_size=100):
         self.bar_step_size = bar_step_size
         self.out_dir = out_dir
-        self.filters = []
+        self.filters = ()
 
-    def filter(self, filters):
+    def filter(self, *filters):
         self.filters = self.filters + filters
 
-    def read(self, file, dir, writer=None):
+    def read(self, file, relate_dir, writer=None):
         myWriter = writer
         if not writer:
-            myWriter = self._writer(file, dir, self.out_dir)
-        filters = self.filters + [myWriter]
-        file_reader = FileLineReader(self.bar_step_size).pipe(filters)
+            myWriter = self._writer(file, relate_dir, self.out_dir)
+        filters = self.filters + (myWriter,)
+        file_reader = FileLineReader(self.bar_step_size).pipe(*filters)
         file_reader.read(file)
         if not writer:
             myWriter.close()
 
-    def _writer(self, file, dir, out_dir):
-        out_dir = join_path(out_dir, dir)
+    def _writer(self, file, relate_dir, out_dir):
+        out_dir = join_path(out_dir, relate_dir)
+        mkdir_p(out_dir)
         out_file = join_path(out_dir, os.path.basename(file))
         return Line_Writer(out_file)
 
@@ -301,7 +316,7 @@ class DefaultDirectoryFilter():
             return DirNavigator(folder_pattern, file_pattern)
 
     def line_filters(self, *filters):
-        self.readWrite.filter(filters)
+        self.readWrite.filter(*filters)
         return self
 
     def path_filters(self, folder_filters, file_filters):
@@ -309,20 +324,23 @@ class DefaultDirectoryFilter():
         return self
 
     def _on_file(self, writer=None):
-        def onFile(file, dir):
-            self.readWrite.read(file, dir, writer)
+        def onFile(file, relate_dir):
+            file = join_path(self._base_dir, relate_dir, file)
+            self.readWrite.read(file, relate_dir, writer)
 
         return onFile
 
     def handle(self, dir, outfile=None):
         writer = None
+        self._base_dir = dir
         if outfile:
             writer = Line_Writer(outfile)
         self.browser.on_item(onFile=self._on_file(writer)).nav(dir)
-        writer.close()
+        if writer:
+            writer.close()
 
 
 class DefaultJsonDirectoryFilter(DefaultDirectoryFilter):
     def __init__(self, output, unzip_dir=None, dir_pattern='*', file_pattern='*', bar_step_size=100):
         super().__init__(output, unzip_dir, dir_pattern, file_pattern, bar_step_size)
-        super().line_filters(To_Json)
+        super().line_filters(To_Json())

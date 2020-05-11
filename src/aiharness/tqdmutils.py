@@ -4,11 +4,13 @@ from tqdm import tqdm
 class ProgressBar():
     def __init__(self, step_size=100):
         self._step_size = step_size
-        self._cur_bar = tqdm(step_size)
+        self._cur_bar = tqdm(step_size) if step_size > 0 else None
         self._cur_pos = 0
         self._total = 0
 
     def update(self):
+        if not self._cur_bar:
+            return
         self._cur_pos = self._cur_pos + 1
         self._total = self._total + 1
         self._cur_bar.update(1)
@@ -17,8 +19,11 @@ class ProgressBar():
             self.reset(self._step_size)
 
     def reset(self, total):
+        if not self._cur_bar:
+            return
         self._cur_bar.reset(total)
         self._cur_pos = 0
 
     def close(self):
-        self._cur_bar.close()
+        if self._cur_bar:
+            self._cur_bar.close()
