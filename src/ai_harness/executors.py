@@ -1,7 +1,7 @@
 import logging
 import multiprocessing as mp
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from aiharness import harnessutils as utils
+from ai_harness import harnessutils as utils
 
 log = utils.getLogger('aiharness')
 

@@ -1,7 +1,7 @@
 import yaml
 import logging
 import logging.config
-from aiharness import xml2object
+from ai_harness import xml2object
 
 try:
     from yaml import CLoader as Loader, CDumper as Dumper

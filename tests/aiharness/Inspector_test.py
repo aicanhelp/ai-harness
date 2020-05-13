@@ -1,7 +1,7 @@
-from aiharness.configclasses import configclass
+from ai_harness.configclasses import configclass
 
-from aiharness import harnessutils as utils
-from aiharness.inspector import Inspector
+from ai_harness import harnessutils as utils
+from ai_harness.inspector import Inspector
 
 log = utils.getRootLogger()
 

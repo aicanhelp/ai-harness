@@ -1,4 +1,4 @@
-from aiharness.fileutils import DefaultJsonDirectoryFilter, \
+from ai_harness.fileutils import DefaultJsonDirectoryFilter, \
     list_dir, list_file, join_path, extract_zip, FileLineReader, DirNavigator
 
 

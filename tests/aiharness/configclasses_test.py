@@ -1,5 +1,5 @@
-from aiharness.configclasses import configclass, field, fields, is_configclass
-from aiharness import harnessutils as utils
+from ai_harness.configclasses import configclass, field, fields, is_configclass
+from ai_harness import harnessutils as utils
 
 log = utils.getLogger('aiharness')
 

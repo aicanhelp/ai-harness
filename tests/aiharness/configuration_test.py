@@ -1,5 +1,5 @@
-from aiharness.configuration import *
-from aiharness import harnessutils as utils
+from ai_harness.configuration import *
+from ai_harness import harnessutils as utils
 
 log = utils.getLogger('aiharness')
 

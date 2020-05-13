@@ -1,5 +1,5 @@
-from aiharness import xml2object
-from aiharness import harnessutils as utils
+from ai_harness import xml2object
+from ai_harness import harnessutils as utils
 
 log = utils.getLogger('test')
 

@@ -2,11 +2,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from aiharness import harnessutils as utils
+from ai_harness import harnessutils as utils
 from threading import current_thread
 from time import sleep
 
-from aiharness.executors import BatchHandlerExecutor, Executor, QueueExecutor
+from ai_harness.executors import BatchHandlerExecutor, Executor, QueueExecutor
 
 log = utils.getLogger('aiharness')
 

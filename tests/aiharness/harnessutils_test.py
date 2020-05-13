@@ -1,6 +1,6 @@
 from typing import List
 
-from aiharness import harnessutils as utils
+from ai_harness import harnessutils as utils
 import yaml
 import argparse
 

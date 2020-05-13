@@ -4,7 +4,7 @@ from inspect import isfunction, ismethod
 from box import Box
 from dataclasses import dataclass
 
-from aiharness.tqdmutils import ProgressBar
+from ai_harness.tqdmutils import ProgressBar
 from boltons.fileutils import mkdir_p
 from pathlib import Path
 import zipfile

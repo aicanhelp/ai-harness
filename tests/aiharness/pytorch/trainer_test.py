@@ -2,7 +2,7 @@ import torch
 from torch import nn, optim
 from torch.utils.data import Dataset
 
-from aiharness.pytorch.trainer import TrainConfig, TrainExecutor, TrainModel, OptScheduler, TrainDataBulk, \
+from ai_harness.pytorch.trainer import TrainConfig, TrainExecutor, TrainModel, OptScheduler, TrainDataBulk, \
     TrainBuilder, ExecutorEventHandler, utils, BaseTrainTask, GradAccumulator
 
 log = utils.getLogger('aiharness')
