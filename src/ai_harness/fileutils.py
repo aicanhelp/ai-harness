@@ -262,7 +262,14 @@ class Line_origin():
 
 class Line_Writer():
     def __init__(self, output_file):
-        self._out_writer = open(output_file, 'w')
+        self._out_writer = open(self._get_filename(output_file), 'w')
+
+    def _get_filename(self, output_file):
+        if os.path.exists(output_file):
+            suffix = output_file.split('.')
+            if suffix and suffix[-1].isnumeric():
+                return "".join(suffix[:-1]) + '.' + str(int(suffix) + 1)
+            return output_file + '.0'
 
     def __call__(self, input, previous_input: tuple):
         self._out_writer.write(input)
