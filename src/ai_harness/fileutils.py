@@ -270,8 +270,9 @@ class Line_Writer():
             if suffix and suffix[-1].isnumeric():
                 return "".join(suffix[:-1]) + '.' + str(int(suffix) + 1)
             return output_file + '.0'
+        return output_file
 
-    def __call__(self, input, previous_input: tuple):
+    def __call__(self, input, previous_input: tuple = None):
         self._out_writer.write(input)
 
     def close(self):
