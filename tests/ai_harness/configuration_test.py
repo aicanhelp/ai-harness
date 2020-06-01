@@ -21,7 +21,7 @@ class Education:
 class Config:
     name: str = field("test", "name help")
     age: int = field(10, "age help")
-    address: Address = field(Address(), "Address help")
+    address = None
     education: Education = Education()
 
 
@@ -67,3 +67,14 @@ class Test_Arguments:
         arguments = Arguments(config)
         config: Config = arguments.parse()
         assert config.address.phone == 136 and config.age == 80 and config.education.school == 'beijing'
+
+
+class Test_ComplexArguments:
+    def test_arg_with_obj(self):
+        config: Config = Config()
+        config.task = "test"
+        config.address = Address()
+        arguments = ComplexArguments({"test": config, "test2": Config()})
+        args: Config = arguments.parse(["test", "--name=tttt", "--address.phone=138"])
+        print(args, config.task)
+        assert config.name == 'tttt' and args.age == 10 and config.address.phone == 138

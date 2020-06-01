@@ -128,9 +128,39 @@ class XmlConfiguration:
         return self.config
 
 
+class ComplexArguments:
+    def __init__(self, sub_arg_objs: dict, grouped=True):
+        self._parser = argparse.ArgumentParser()
+        self._subparsers = self._parser.add_subparsers(help='sub-command help')
+        self._sub_arg_objs = sub_arg_objs
+        self._grouped = grouped
+        self._arg_objs = {}
+        self.__create_args()
+
+    def __create_args(self):
+        for sub, arg_obj in self._sub_arg_objs.items():
+            if arg_obj is None:
+                continue
+            parser = self._subparsers.add_parser(sub, help='{} help'.format(sub))
+            self._arg_objs[sub] = Arguments(arg_obj, parser, self._grouped)
+            parser.set_defaults(func=sub)
+
+    def _get_arg_obj(self, sub, args):
+        argument: Arguments = self._arg_objs[sub]
+        for k, _ in args.__dict__.items():
+            Inspector.set_attr_from(args, argument.destObj, k, False, True)
+        return argument.destObj
+
+    def parse(self, args=None):
+        args, _ = self._parser.parse_known_args(args)
+        if not self._arg_objs:
+            return None
+        return self._get_arg_obj(args.func, args)
+
+
 class Arguments:
-    def __init__(self, configObj, grouped=True):
-        self.parser = argparse.ArgumentParser()
+    def __init__(self, configObj, parser=None, grouped=True):
+        self.parser = argparse.ArgumentParser() if parser is None else parser
         self.destObj = configObj
         self.grouped = grouped
         self.groups = dict()
@@ -160,11 +190,13 @@ class Arguments:
             name = group + '.' + name
 
         action = self.__get_type_action(field)
-
+        required = True
+        if v is None:
+            required = False
         name = name.replace('_', '-')
         parser.add_argument('--' + name,
                             default=v,
-                            required=False,
+                            required=required,
                             action=action,
                             help=field.help)
         return self

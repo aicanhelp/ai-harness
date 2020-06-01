@@ -9,7 +9,7 @@ class ProgressBar():
         self._total = 0
 
     def update(self):
-        if not self._cur_bar:
+        if self._cur_bar is None:
             return
         self._cur_pos = self._cur_pos + 1
         self._total = self._total + 1
@@ -19,11 +19,11 @@ class ProgressBar():
             self.reset(self._step_size)
 
     def reset(self, total):
-        if not self._cur_bar:
+        if self._cur_bar is None:
             return
         self._cur_bar.reset(total)
         self._cur_pos = 0
 
     def close(self):
-        if self._cur_bar:
+        if self._cur_bar is not None:
             self._cur_bar.close()
