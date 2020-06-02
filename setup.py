@@ -11,7 +11,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 setup(
     metadata_version='2.1',
     name='ai-harness',
-    version='0.4.7',
+    version='0.4.11',
     description='A harness project for ML & DL',
     long_description=long_description,
     long_description_content_type='text/markdown',

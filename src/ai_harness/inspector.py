@@ -9,6 +9,7 @@ class Inspector:
         if parse:
             attributes = name.split('.')
             name = attributes[-1]
+
             for attr in attributes[:-1]:
                 parent = getattr(instance, attr, NoneAttr)
                 if parent == NoneAttr:

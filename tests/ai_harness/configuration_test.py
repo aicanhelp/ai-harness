@@ -23,6 +23,7 @@ class Config:
     age: int = field(10, "age help")
     address = None
     education: Education = Education()
+    a_address = None
 
 
 class Test_XmlConfiguration:
@@ -73,8 +74,8 @@ class Test_ComplexArguments:
     def test_arg_with_obj(self):
         config: Config = Config()
         config.task = "test"
-        config.address = Address()
+        config.a_address = Address()
         arguments = ComplexArguments({"test": config, "test2": Config()})
-        args: Config = arguments.parse(["test", "--name=tttt", "--address.phone=138"])
+        cmd, args = arguments.parse(["test", "--name=tttt", "--a-address.phone=138"])
         print(args, config.task)
-        assert config.name == 'tttt' and args.age == 10 and config.address.phone == 138
+        assert config.name == 'tttt' and args.age == 10 and config.a_address.phone == 138
