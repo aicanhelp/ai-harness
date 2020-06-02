@@ -131,7 +131,7 @@ class XmlConfiguration:
 class ComplexArguments:
     def __init__(self, sub_arg_objs: dict, grouped=True):
         self._parser = argparse.ArgumentParser()
-        self._subparsers = self._parser.add_subparsers(help='sub-command help')
+        self._subparsers = self._parser.add_subparsers(help='sub-command help', dest='cmd', required=True)
         self._sub_arg_objs = sub_arg_objs
         self._grouped = grouped
         self._arg_objs = {}
@@ -143,7 +143,6 @@ class ComplexArguments:
                 continue
             parser = self._subparsers.add_parser(sub, help='{} help'.format(sub))
             self._arg_objs[sub] = Arguments(arg_obj, parser, self._grouped)
-            parser.set_defaults(func=sub)
 
     def _get_arg_obj(self, sub, args):
         argument: Arguments = self._arg_objs[sub]
@@ -154,8 +153,8 @@ class ComplexArguments:
     def parse(self, args=None):
         args, _ = self._parser.parse_known_args(args)
         if not self._arg_objs:
-            return None
-        return self._get_arg_obj(args.func, args)
+            return None, None
+        return args.cmd, self._get_arg_obj(args.cmd, args)
 
 
 class Arguments:
