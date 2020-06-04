@@ -385,7 +385,7 @@ def _hash_fn(fields):
 def _is_classvar(a_type, typing):
     # This test uses a typing internal class, but it's the best way to
     # test if this is a ClassVar.
-    return type(a_type) is typing._ClassVar
+    return type(a_type) is typing.ClassVar
 
 
 def _is_initvar(a_type, configclasses):
