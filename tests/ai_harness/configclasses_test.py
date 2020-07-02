@@ -1,7 +1,5 @@
 from typing import Optional
 
-import typing
-
 from ai_harness.configclasses import configclass, field, fields, is_configclass
 from ai_harness import harnessutils as utils
 

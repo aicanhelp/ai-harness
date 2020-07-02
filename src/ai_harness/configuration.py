@@ -1,7 +1,7 @@
 from ai_harness import harnessutils as utils
 from ai_harness.inspector import Inspector
 import argparse
-from ai_harness.configclasses import configclass, field, fields, Field, is_configclass
+from ai_harness.configclasses import configclass, field, fields, Field, is_configclass, make_configclass, merge_fields,export
 
 
 def arg(value, help):

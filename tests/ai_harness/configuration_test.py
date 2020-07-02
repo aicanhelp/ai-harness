@@ -18,6 +18,11 @@ class Education:
 
 
 @configclass
+class Additions:
+    test: str = field('test')
+
+
+@configclass
 class Config:
     name: str = field("test", "name help")
     age: int = field(10, "age help")
@@ -79,3 +84,13 @@ class Test_ComplexArguments:
         cmd, args = arguments.parse(["test", "--name=tttt", "--a-address.phone=138"])
         print(args, config.task)
         assert config.name == 'tttt' and args.age == 10 and config.a_address.phone == 138
+
+    def test_dynamic_additions(self):
+        new_cls = merge_fields(Additions, Config)
+        dest_obj = new_cls()
+        arguments = Arguments(dest_obj)
+        args = arguments.parse()
+        assert args.test
+        args.test = 'hello'
+        additions = export(args, Additions())
+        assert additions.test == 'hello'

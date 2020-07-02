@@ -785,6 +785,28 @@ def make_configclass(cls_name, fields, *, bases=(), namespace=None, init=True,
                        unsafe_hash=unsafe_hash, frozen=frozen)
 
 
+def merge_fields(src_cls, dest_cls):
+    src_fields = getattr(src_cls, _FIELDS, None)
+    dest_fields = getattr(dest_cls, _FIELDS, None)
+
+    for f in src_fields.values():
+        dest_fields[f.name] = f
+
+        setattr(dest_cls, f.name, f.default)
+
+    # setattr(dest_cls, _FIELDS, de)
+
+    return dest_cls
+
+
+def export(from_obj, to_obj):
+    to_fields = fields(to_obj)
+    for f in to_fields:
+        if hasattr(from_obj, f.name):
+            setattr(to_obj, f.name, getattr(from_obj, f.name))
+    return to_obj
+
+
 def replace(obj, **changes):
     if not _is_configclass_instance(obj):
         raise TypeError("replace() should be called on configclass instances")
