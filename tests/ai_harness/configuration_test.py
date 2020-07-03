@@ -86,11 +86,11 @@ class Test_ComplexArguments:
         assert config.name == 'tttt' and args.age == 10 and config.a_address.phone == 138
 
     def test_dynamic_additions(self):
-        new_cls = merge_fields(Additions, Config)
+        new_cls = merge_fields(Config, Additions)
         dest_obj = new_cls()
         arguments = Arguments(dest_obj)
         args = arguments.parse()
         assert args.test
         args.test = 'hello'
-        additions = export(args, Additions())
+        additions = export(args, Additions)
         assert additions.test == 'hello'
