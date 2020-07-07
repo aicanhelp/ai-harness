@@ -1,7 +1,8 @@
 from ai_harness import harnessutils as utils
 from ai_harness.inspector import Inspector
 import argparse
-from ai_harness.configclasses import configclass, field, fields, Field, is_configclass, make_configclass, merge_fields,export
+from ai_harness.configclasses import configclass, field, fields, Field, is_configclass, make_configclass, merge_fields, \
+    export
 
 
 def arg(value, help):
@@ -161,10 +162,10 @@ class ComplexArguments:
 
 
 class Arguments:
-    def __init__(self, configObj, parser=None, grouped=True):
+    def __init__(self, configObj, parser=None, with_group_prefix=False):
         self.parser = argparse.ArgumentParser() if parser is None else parser
         self.destObj = configObj
-        self.grouped = grouped
+        self.with_group_prefix = with_group_prefix
         self.groups = dict()
         self.configInspector = ConfigInspector(self.destObj)
         self._arg_obj(self.configInspector, self.parser)
@@ -210,11 +211,12 @@ class Arguments:
                 self._arg(field, v, parser, groupName)
 
         for k, v in configInspector.configClasses.items():
-            if self.grouped:
-                parser = self.__get_group(k, configInspector.help(k))
+            parser = self.__get_group(k, configInspector.help(k)) if self.with_group_prefix else self.parser
+
+            if self.with_group_prefix:
                 self._arg_obj(ConfigInspector(v), parser, k)
             else:
-                self._arg_obj(ConfigInspector(v), self.parser, k)
+                self._arg_obj(ConfigInspector(v), parser, k)
 
         return self
 
