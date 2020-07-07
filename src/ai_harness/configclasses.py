@@ -788,14 +788,14 @@ def make_configclass(cls_name, fields, *, bases=(), namespace=None, init=True,
 def merge_fields(dest_cls, *src_classes):
     for src_cls in src_classes:
         src_fields = getattr(src_cls, _FIELDS, None)
-        dest_fields = getattr(dest_cls, _FIELDS, None)
+        dest_fields = getattr(dest_cls, _FIELDS, {})
 
         for f in src_fields.values():
             dest_fields[f.name] = f
 
             setattr(dest_cls, f.name, f.default)
 
-    # setattr(dest_cls, _FIELDS, de)
+        # setattr(dest_cls, _FIELDS, dest_fields)
 
     return dest_cls
 

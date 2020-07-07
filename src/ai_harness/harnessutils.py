@@ -20,7 +20,12 @@ def load_yaml(file: str):
 
 conf = load_yaml('logging.yaml')
 if conf is not None:
-    logging.config.dictConfig(conf)
+    try:
+        logging.config.dictConfig(conf)
+    except:
+        pass
+    finally:
+        pass
 
 
 def getLogger(name: str):
