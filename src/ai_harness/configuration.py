@@ -110,12 +110,12 @@ class XmlConfiguration:
 
 
 class ComplexArguments:
-    def __init__(self, sub_arg_objs: dict, grouped=True):
+    def __init__(self, sub_arg_objs: dict, with_group_prefix=False):
         self._parser = argparse.ArgumentParser()
         self._subparsers = self._parser.add_subparsers(help='sub-command help', dest='cmd')
         self._subparsers.required = True
         self._sub_arg_objs = sub_arg_objs
-        self._grouped = grouped
+        self._with_group_prefix = with_group_prefix
         self._arg_objs = {}
         self.__create_args()
 
@@ -123,7 +123,7 @@ class ComplexArguments:
         for sub, arg_obj in self._sub_arg_objs.items():
             if arg_obj is None: continue
             parser = self._subparsers.add_parser(sub, help='{} help'.format(sub))
-            self._arg_objs[sub] = Arguments(arg_obj, parser, self._grouped)
+            self._arg_objs[sub] = Arguments(arg_obj, parser, self._with_group_prefix)
 
     def _get_arg_obj(self, sub, args):
         argument: Arguments = self._arg_objs[sub]
