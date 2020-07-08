@@ -11,34 +11,26 @@ import zipfile
 
 
 def _instance_filter(handler):
-    if handler is None:
-        raise Exception('The Pipe handler can not be None')
+    if handler is None: raise Exception('The Pipe handler can not be None')
     t = type(handler)
-    if t == type:
-        return handler()
-
+    if t == type: return handler()
     return handler
 
 
 def list_file(path, pattern='*'):
     p = Path(path)
-    if not p.exists():
-        print('Directory is not exists.')
+    if not p.exists(): print('Directory is not exists.')
     return [x.name for x in p.glob(pattern) if x.is_file()]
 
 
 def list_dir(path, pattern='*'):
     p = Path(path)
-    if not p.exists():
-        print('Directory is not exists.')
+    if not p.exists(): print('Directory is not exists.')
     return [x.name for x in p.glob(pattern) if x.is_dir()]
 
 
 def list(path, pattern='*', file=True):
-    if file:
-        return list_file(path, pattern)
-    else:
-        return list_dir(path, pattern)
+    return list_file(path, pattern) if file else list_dir(path, pattern)
 
 
 def zip_files(out_file, *input_files):
@@ -46,20 +38,16 @@ def zip_files(out_file, *input_files):
         if os.path.isfile(path):
             zf.write(path, zippath, zipfile.ZIP_DEFLATED)
         elif os.path.isdir(path):
-            if zippath:
-                zf.write(path, zippath)
+            if zippath: zf.write(path, zippath)
             for nm in os.listdir(path):
-                addToZip(zf,
-                         os.path.join(path, nm), os.path.join(zippath, nm))
+                addToZip(zf, os.path.join(path, nm), os.path.join(zippath, nm))
         # else: ignore
 
     with zipfile.ZipFile(out_file, 'w') as zf:
         for path in input_files[2:]:
             zippath = os.path.basename(path)
-            if not zippath:
-                zippath = os.path.basename(os.path.dirname(path))
-            if zippath in ('', os.curdir, os.pardir):
-                zippath = ''
+            if not zippath: zippath = os.path.basename(os.path.dirname(path))
+            if zippath in ('', os.curdir, os.pardir): zippath = ''
             addToZip(zf, path, zippath)
 
 
@@ -69,15 +57,13 @@ def join_path(*files):
         if result is None:
             result = file
             continue
-        if file is None:
-            continue
+        if file is None: continue
         result = os.path.join(result, file)
     return result
 
 
 def extract_zip(zip_file, dest_dir, members=None):
-    if not zipfile.is_zipfile(zip_file):
-        return
+    if not zipfile.is_zipfile(zip_file): return
     mkdir_p(dest_dir)
     with zipfile.ZipFile(zip_file, 'r') as zf:
         zf.extractall(dest_dir, members)
@@ -105,18 +91,15 @@ class FileLineReader():
                 self._bar.update()
                 read_line = f.readline()
 
-                if len(read_line) == 0:
-                    return count
+                if len(read_line) == 0: return count
 
-                if self._exclude_empty_line and read_line.strip() == '':
-                    continue
+                if self._exclude_empty_line and read_line.strip() == '': continue
 
                 input = read_line
                 result = ()
 
                 for handler in self._handlers:
-                    if handler is None:
-                        continue
+                    if handler is None: continue
 
                     next = handler(input, result)
 
@@ -193,11 +176,9 @@ class DirNavigator(PathNavigator):
         return self
 
     def __filter(self, filters, name, dir):
-        if not filters:
-            return True
+        if not filters: return True
         for filter in filters:
-            if not filter(name, dir):
-                return False
+            if not filter(name, dir): return False
         return True
 
     def _loop_dir(self, parent, dir, state: NavState):
@@ -208,22 +189,19 @@ class DirNavigator(PathNavigator):
 
         for d in folders:
             self._bar.update()
-            if not self.__filter(self._folderFilters, d, relate_dir):
-                continue
+            if not self.__filter(self._folderFilters, d, relate_dir): continue
             state.inc_folder()
             if not self._onFolder or self._onFolder(d, relate_dir):
                 self._loop_dir(relate_dir, d, state)
 
         for f in files:
             self._bar.update()
-            if not self.__filter(self._fileFilters, f, relate_dir):
-                continue
+            if not self.__filter(self._fileFilters, f, relate_dir): continue
             if zipfile.is_zipfile(f) and self._onZipFile:
                 self._onZipFile(f, relate_dir)
                 continue
             state.inc_file()
-            if self._onFile:
-                self._onFile(f, relate_dir)
+            if self._onFile: self._onFile(f, relate_dir)
 
     def nav(self, dir, *args):
         navState = NavState()
@@ -297,13 +275,11 @@ class FileLineReadAndWrite():
 
     def read(self, file, relate_dir, writer=None):
         myWriter = writer
-        if not writer:
-            myWriter = self._writer(file, relate_dir, self.out_dir)
+        if not writer: myWriter = self._writer(file, relate_dir, self.out_dir)
         filters = self.filters + (myWriter,)
         file_reader = FileLineReader(self.bar_step_size).pipe(*filters)
         file_reader.read(file)
-        if not writer:
-            myWriter.close()
+        if not writer: myWriter.close()
 
     def _writer(self, file, relate_dir, out_dir):
         out_dir = join_path(out_dir, relate_dir)
@@ -341,11 +317,9 @@ class DefaultDirectoryFilter():
     def handle(self, dir, outfile=None):
         writer = None
         self._base_dir = dir
-        if outfile:
-            writer = Line_Writer(outfile)
+        if outfile: writer = Line_Writer(outfile)
         self.browser.on_item(onFile=self._on_file(writer)).nav(dir)
-        if writer:
-            writer.close()
+        if writer: writer.close()
 
 
 class DefaultJsonDirectoryFilter(DefaultDirectoryFilter):

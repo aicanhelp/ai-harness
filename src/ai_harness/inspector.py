@@ -12,15 +12,12 @@ class Inspector:
 
             for attr in attributes[:-1]:
                 parent = getattr(instance, attr, NoneAttr)
-                if parent == NoneAttr:
-                    return None, None, None
+                if parent == NoneAttr: return None, None, None
 
-        if not with_type:
-            return parent, name, None
+        if not with_type: return parent, name, None
 
         field = type(parent).__dict__.get('__configclass_fields__').get(name)
-        if field is None:
-            return parent, name, None
+        if field is None: return parent, name, None
         return parent, name, field.type
 
     @staticmethod
@@ -31,15 +28,13 @@ class Inspector:
     @staticmethod
     def get_attr(instance, name, parse=False):
         parent, name, _ = Inspector.parse_attribute(instance, name, False, parse)
-        if parent is None:
-            return None
+        if parent is None: return None
         return getattr(parent, name, None)
 
     @staticmethod
     def get_attr_with_type(instance, name, parse=False):
         parent, name, type = Inspector.parse_attribute(instance, name, True, parse)
-        if parent is None:
-            return None, None
+        if parent is None: return None, None
         return getattr(parent, name, None), type
 
     @staticmethod
@@ -51,13 +46,11 @@ class Inspector:
         t = None
         if parseTo:
             parent, name, t = Inspector.parse_attribute(parent, attr, True, parseTo)
-            if parent is None or not hasattr(parent, name):
-                return toO
+            if parent is None or not hasattr(parent, name): return toO
 
         v = Inspector.get_attr(fromO, attr, parseFrom)
 
-        if v is None:
-            return toO
+        if v is None: return toO
 
         if t is None:
             setattr(parent, name, v)
@@ -68,17 +61,13 @@ class Inspector:
 
     @staticmethod
     def dict2obj(dict: dict, obj):
-        for k, v in dict.items():
-            setattr(obj, k, v)
+        for k, v in dict.items(): setattr(obj, k, v)
         return obj
 
     @staticmethod
     def initialize_attr(instance, attr, parse=False):
-        if instance is None or attr is None:
-            return instance
-        if getattr(instance, attr) is not None:
-            return instance
+        if instance is None or attr is None: return instance
+        if getattr(instance, attr) is not None: return instance
         t = Inspector.field_type(instance, attr, parse)
-        if attr is None:
-            return instance
+        if attr is None: return instance
         setattr(instance, attr, t())
