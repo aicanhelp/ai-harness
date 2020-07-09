@@ -148,10 +148,7 @@ class ComplexArguments:
 
     def _get_arg_obj(self, sub, args):
         argument: Arguments = self._arg_objs[sub]
-        for k, _ in args.__dict__.items():
-            Inspector.set_attr_from(args, argument.destObj, k, False, True)
-        # print("Argument Obj: {}".format(str(argument.destObj)))
-        return argument.destObj
+        return argument.set_values(args, self._with_group_prefix)
 
     def parse(self, args=None):
         args, _ = self._parser.parse_known_args(args)
@@ -215,10 +212,12 @@ class Arguments:
 
         return self
 
+    def set_values(self, args, with_group_prefix=False):
+        for k, v in args.__dict__.items():
+            if v: self.configInspector.set(k, v, None, with_group_prefix)
+        return self.destObj
+
     def parse(self, args=None, with_group_prefix=False):
         args, _ = self.parser.parse_known_args(args)
 
-        for k, v in args.__dict__.items():
-            if v: self.configInspector.set(k, v, None, with_group_prefix)
-
-        return self.destObj
+        return self.set_values(args, with_group_prefix)
