@@ -2,7 +2,7 @@ from ai_harness import harnessutils as utils
 from ai_harness.inspector import Inspector
 import argparse
 from ai_harness.configclasses import configclass, field, fields, Field, is_configclass, make_configclass, merge_fields, \
-    export
+    export, to_json_string
 
 
 def arg(value, help):
@@ -12,17 +12,17 @@ def arg(value, help):
 class ConfigInspector:
     def __init__(self, config):
         self.config = config
-        self.fields = self._get_fields()
-        self.configClasses = self._get_configClasses()
+        self.fields = self._get_fields(config)
+        self.configClasses = self._get_configClasses(config)
 
-    def _get_fields(self):
+    def _get_fields(self, config):
         fieldDict = dict()
-        for field in fields(self.config): fieldDict.setdefault(field.name, field)
+        for field in fields(config): fieldDict.setdefault(field.name, field)
         return fieldDict
 
-    def _get_configClasses(self):
+    def _get_configClasses(self, config):
         configClassesDict = dict()
-        for k, v in self.config.__dict__.items():
+        for k, v in config.__dict__.items():
             if v is None: continue
             if is_configclass(v): configClassesDict.setdefault(k, v)
         return configClassesDict
@@ -33,12 +33,30 @@ class ConfigInspector:
     def get_field(self, name):
         return self.fields.get(name)
 
-    def set(self, name, value=None, help=None):
-        if not hasattr(self.config, name): return
-        field = self.get_field(name)
-        if field is None: return
-        if value is not None: setattr(self.config, name, field.type(value))
-        if help is not None and help != '': field.help = help
+    def get_field_with_parent(self, name, root_parent=None):
+        root_parent = self.config if not root_parent else root_parent
+        this_field = self._get_fields(root_parent).get(name)
+        if this_field: return root_parent, this_field
+        for sub_name, sub_config in self._get_configClasses(root_parent).items():
+            parent, this_field = self.get_field_with_parent(name, sub_config)
+            if this_field: return sub_config, this_field
+        return None, None
+
+    def set(self, name, value=None, help=None, parse_name=False):
+        parent = self.config
+        if parse_name:
+            attributes = name.split('.')
+            name = attributes[-1]
+
+            for attr in attributes[:-1]:
+                parent = self._get_configClasses(parent).get(attr)
+            this_field = self._get_fields(parent).get(name)
+        else:
+            parent, this_field = self.get_field_with_parent(name, parent)
+
+        if this_field is None: return
+        if value is not None: setattr(parent, name, this_field.type(value))
+        if help is not None and help != '': this_field.help = help
 
     def value(self, name):
         getattr(self.config, name)
@@ -110,20 +128,23 @@ class XmlConfiguration:
 
 
 class ComplexArguments:
-    def __init__(self, sub_arg_objs: dict, with_group_prefix=False):
-        self._parser = argparse.ArgumentParser()
+    def __init__(self, sub_arg_objs: dict, with_group_prefix=False, conflict_error=False):
+        self._conflict_handler = 'error' if conflict_error else 'resolve'
+        self._parser = argparse.ArgumentParser(conflict_handler=self._conflict_handler)
         self._subparsers = self._parser.add_subparsers(help='sub-command help', dest='cmd')
         self._subparsers.required = True
         self._sub_arg_objs = sub_arg_objs
         self._with_group_prefix = with_group_prefix
+        self._conflict_error = conflict_error
         self._arg_objs = {}
         self.__create_args()
 
     def __create_args(self):
         for sub, arg_obj in self._sub_arg_objs.items():
             if arg_obj is None: continue
-            parser = self._subparsers.add_parser(sub, help='{} help'.format(sub))
-            self._arg_objs[sub] = Arguments(arg_obj, parser, self._with_group_prefix)
+            parser = self._subparsers.add_parser(sub, conflict_handler=self._conflict_handler,
+                                                 help='{} help'.format(sub))
+            self._arg_objs[sub] = Arguments(arg_obj, parser, self._with_group_prefix, self._conflict_error)
 
     def _get_arg_obj(self, sub, args):
         argument: Arguments = self._arg_objs[sub]
@@ -140,8 +161,9 @@ class ComplexArguments:
 
 
 class Arguments:
-    def __init__(self, configObj, parser=None, with_group_prefix=False):
-        self.parser = argparse.ArgumentParser() if parser is None else parser
+    def __init__(self, configObj, parser=None, with_group_prefix=False, conflict_error=False):
+        self.parser = argparse.ArgumentParser(
+            conflict_handler='error' if conflict_error else 'resolve') if parser is None else parser
         self.destObj = configObj
         self.with_group_prefix = with_group_prefix
         self.groups = dict()
@@ -151,8 +173,10 @@ class Arguments:
     def __get_type_action(self, field):
         action = 'store'
         if field.type == bool:
-            if field.default: return 'store_false'
-            else: return 'store_true'
+            if field.default:
+                return 'store_false'
+            else:
+                return 'store_true'
         return action
 
     def __get_group(self, groupName, help=''):
@@ -170,6 +194,7 @@ class Arguments:
         required = True
         if v is None: required = False
         name = name.replace('_', '-')
+
         parser.add_argument('--' + name,
                             default=v,
                             required=required,
@@ -184,16 +209,16 @@ class Arguments:
                 self._arg(field, v, parser, groupName)
 
         for k, v in configInspector.configClasses.items():
-            parser = self.__get_group(k, configInspector.help(k)) if self.with_group_prefix else self.parser
+            parser = self.__get_group(k, configInspector.help(k))
             group_name = k if self.with_group_prefix else None
             self._arg_obj(ConfigInspector(v), parser, group_name)
 
         return self
 
-    def parse(self, args=None):
+    def parse(self, args=None, with_group_prefix=False):
         args, _ = self.parser.parse_known_args(args)
 
-        for k, _ in args.__dict__.items():
-            Inspector.set_attr_from(args, self.destObj, k, False, True)
+        for k, v in args.__dict__.items():
+            if v: self.configInspector.set(k, v, None, with_group_prefix)
 
         return self.destObj

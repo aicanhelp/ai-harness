@@ -1,3 +1,6 @@
+from argparse import ArgumentParser
+
+from ai_harness.configclasses import to_json_string
 from ai_harness.configuration import *
 from ai_harness import harnessutils as utils
 
@@ -8,7 +11,7 @@ log = utils.getLogger('aiharness')
 class Address:
     phone: int = field(139, "phone help")
     home: str = field("beijing", "phone help")
-    test = False
+    test: bool = False
 
 
 @configclass
@@ -26,9 +29,27 @@ class Additions:
 class Config:
     name: str = field("test", "name help")
     age: int = field(10, "age help")
-    address = None
+    address: Address = Address()
     education: Education = Education()
-    a_address = None
+    a_address: str = None
+
+
+class Test_ConfigInspector:
+    def test_get_field(self):
+        config = Config()
+        inspector = ConfigInspector(config)
+        p, f = inspector.get_field_with_parent('name')
+        assert f.type == str
+
+    def test_set(self):
+        config = Config()
+        inspector = ConfigInspector(config)
+        inspector.set('name', 'AAA')
+        assert config.name == 'AAA'
+        inspector.set('education.school', 'TTT', parse_name=True)
+        assert config.education.school == 'TTT'
+        inspector.set('school', 'SSS')
+        assert config.education.school == 'SSS'
 
 
 class Test_XmlConfiguration:
@@ -61,12 +82,28 @@ class Test_XmlConfiguration:
                and config.name == 'FinalName'
 
 
+class Test_ArgumentParser:
+    def test_configclass(self):
+        Address(phone='189', home='beijing', test=True)
+
+    def test_duplicate(self):
+        parser = ArgumentParser(conflict_handler='resolve')
+        parser.add_argument('--name', default=None)
+        parser.add_argument('--name', default=None)
+
+
 class Test_Arguments:
     def test_arg_with_obj(self):
         config: Config = Config()
         arguments = Arguments(config)
         args: Config = arguments.parse()
         assert args.name == 'test' and args.age == 10 and args.address.phone == 139
+
+    def test_args_setting(self):
+        config: Config = Config()
+        arguments = Arguments(config)
+        args: Config = arguments.parse(['--a-address=test', '--school=beijing'])
+        assert args.a_address == 'test' and args.education.school == 'beijing'
 
     def test_with_xmlfile(self):
         config: Config = XmlConfiguration(Config).load(['config/configuration.xml'])
@@ -80,7 +117,7 @@ class Test_ComplexArguments:
         config: Config = Config()
         config.task = "test"
         config.a_address = Address()
-        arguments = ComplexArguments({"test": config, "test2": Config()})
+        arguments = ComplexArguments({"test": config, "test2": Config()}, with_group_prefix=True)
         cmd, args = arguments.parse(["test", "--name=tttt", "--a-address.phone=138"])
         print(args, config.task)
         assert config.name == 'tttt' and args.age == 10 and config.a_address.phone == 138
@@ -88,6 +125,7 @@ class Test_ComplexArguments:
     def test_dynamic_additions(self):
         new_cls = merge_fields(Config, Additions)
         dest_obj = new_cls()
+        print(to_json_string(dest_obj))
         arguments = Arguments(dest_obj)
         args = arguments.parse()
         assert args.test

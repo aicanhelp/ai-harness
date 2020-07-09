@@ -1,3 +1,4 @@
+import json
 import re
 import sys
 import copy
@@ -834,3 +835,10 @@ def replace(obj, **changes):
     # changes that aren't fields, this will correctly raise a
     # TypeError.
     return obj.__class__(**changes)
+
+
+def to_json_string(obj):
+    """
+    Serializes this instance to a JSON string.
+    """
+    return json.dumps(asdict(obj), indent=2)
