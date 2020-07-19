@@ -2,8 +2,8 @@ import io, struct
 
 
 class Buffer():
-    def __init__(self):
-        self._buf = io.BytesIO()
+    def __init__(self, buf=None):
+        self._buf = io.BytesIO() if not buf else buf
 
     def write_int(self, int_value):
         self._buf.write(struct.pack('i', int_value))
@@ -22,6 +22,13 @@ class Buffer():
     def seek(self, position):
         self._buf.seek(position)
         return self
+
+    def write_buffer(self, buffer):
+        self._buf.write(buffer.get_buffer())
+        return self
+
+    def get_buffer(self):
+        return self._buf.getbuffer()
 
     def close(self):
         if self._buf and not self._buf.closed: self._buf.close()

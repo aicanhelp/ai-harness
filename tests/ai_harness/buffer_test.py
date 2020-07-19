@@ -8,15 +8,20 @@ class Test_Buffer:
         assert buffer.read_int() == 1
         buffer.write_ints([1] * 10).seek(0)
         assert buffer.read_ints(10) == [1] * 10
+        buffer2 = Buffer()
+        buffer.write_int(1)
+        buffer2.write_buffer(buffer).seek(0)
+        assert buffer2.read_int() == 1
         buffer.close()
+        buffer2.close()
 
-    def test_buffer2(self):
-        buffer = Buffer2()
-        buffer.write_int(1).seek(0)
-        assert buffer.read_int() == 1
-        buffer.write_ints([1] * 10).seek(0)
-        assert buffer.read_ints(10) == [1] * 10
-        buffer.close()
+    def test_file_buffer(self):
+        with open('./test_data/buffer', 'bw') as f:
+            buffer = Buffer(f)
+            buffer.write_int(1)
+        with open('./test_data/buffer', 'br') as f1:
+            buffer = Buffer(f1)
+            assert buffer.read_int() == 1
 
 
 class Test_Benchmark_Buffer:
