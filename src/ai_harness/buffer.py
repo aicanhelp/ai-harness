@@ -39,7 +39,6 @@ class Buffer():
     def __init__(self, buf=None):
         self._buf = io.BytesIO() if not buf else buf
         self._external = not buf
-        self._buf.writable()
 
     def writes(self, fmt, *values):
         self._buf.write(struct.pack(fmt, *values))
