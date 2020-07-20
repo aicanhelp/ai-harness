@@ -35,10 +35,10 @@ class Test_Buffer:
     def test_file_buffer(self):
         with open('./test_data/buffer', 'bw') as f:
             buffer = Buffer(f)
-            buffer.write_int(1)
+            buffer.write_int(10)
         with open('./test_data/buffer', 'br') as f1:
             buffer = Buffer(f1)
-            assert buffer.read_int() == 1
+            assert buffer.read_int() == 10
 
 
 class Test_ObjectListSerializer():

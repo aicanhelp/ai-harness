@@ -125,7 +125,7 @@ class Buffer():
         return self.read_list(T_Int, length)
 
     def read_floats(self, length=1) -> List[float]:
-        return self.read_list(T_Int, length)
+        return self.read_list(T_Float, length)
 
     def seek(self, position=0):
         self._buf.seek(position)
