@@ -3,3 +3,4 @@ pyyaml>=3.12
 #dataclasses required by python <=3.6
 dataclasses>=0.7
 pytest
+emoji
